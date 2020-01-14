@@ -1759,66 +1759,6 @@ function downloadTrack(trackInfos, trackQualityId, saveFilePath, numberRetry = 0
 }
 
 /**
- * Download the album cover of a track.
- *
- * @param {Object} trackInfos
- * @param {String} saveFilePath
- * @param {Number} numberRetry
- */
-function downloadAlbumCover(trackInfos, saveFilePath, numberRetry = 0) {
-
-    const albumCoverUrl = 'https://e-cdns-images.dzcdn.net/images/cover/' + trackInfos.ALB_PICTURE + '/1400x1400-000000-94-0-0.jpg';
-    const albumCoverSavePath = nodePath.dirname(saveFilePath) + '/cover.jpg';
-
-    return new Promise((resolve, reject) => {
-        // check to make sure there is a cover for this album
-        if (!trackInfos.ALB_PICTURE) {
-            reject();
-        } else {
-            if (!fs.existsSync(albumCoverSavePath)) {
-
-                requestWithoutCache({
-                    url: albumCoverUrl,
-                    headers: httpHeaders,
-                    jar: true,
-                    encoding: null
-                }).then((response) => {
-
-                    ensureDir(albumCoverSavePath);
-                    fs.writeFile(albumCoverSavePath, response, (err) => {
-                        if (err) {
-                            reject();
-                        } else {
-                            resolve(albumCoverSavePath);
-                        }
-                    });
-                }).catch((err) => {
-                    if (403 === err.statusCode) {
-                        if (4 >= numberRetry) {
-                            numberRetry += 1;
-
-                            setTimeout(() => {
-                                downloadAlbumCover(trackInfos, saveFilePath, numberRetry).then((albumCoverSavePath) => {
-                                    resolve(albumCoverSavePath);
-                                }).catch(() => {
-                                    reject();
-                                });
-                            }, 500);
-                        } else {
-                            reject();
-                        }
-                    } else {
-                        reject();
-                    }
-                });
-            } else {
-                resolve(albumCoverSavePath);
-            }
-        }
-    });
-}
-
-/**
  * Add tags to the mp3/flac file.
  *
  * @param {Buffer} decryptedTrackBuffer
@@ -1829,50 +1769,11 @@ function downloadAlbumCover(trackInfos, saveFilePath, numberRetry = 0) {
 function addTrackTags(decryptedTrackBuffer, trackInfos, saveFilePath, numberRetry = 0) {
     return new Promise((resolve, reject) => {
 
-        downloadAlbumCover(trackInfos, saveFilePath).then((albumCoverSavePath) => {
 
-            startTagging(albumCoverSavePath);
-        }).catch(() => {
-            startTagging();
-        });
+        ensureDir(saveFilePath);
+        fs.writeFileSync(saveFilePath, decryptedTrackBuffer);
 
-        function startTagging(albumCoverSavePath = null) {
-            try {
+        resolve();
 
-                   let saveFilePathExtension = nodePath.extname(saveFilePath);
-
-
-                        let coverBuffer;
-
-                        if (albumCoverSavePath && fs.existsSync(albumCoverSavePath)) {
-                            coverBuffer = fs.readFileSync(albumCoverSavePath);
-                        }
-
-                        ensureDir(saveFilePath);
-                        fs.writeFileSync(saveFilePath, decryptedTrackBuffer);
-
-                        resolve();
-                    
-                
-            } catch (err) {
-
-                if (10 > numberRetry) {
-                    numberRetry += 1;
-
-                    setTimeout(() => {
-                        addTrackTags(decryptedTrackBuffer, trackInfos, saveFilePath, numberRetry).then(() => {
-                            resolve();
-                        }).catch(() => {
-                            reject();
-                        });
-                    }, 500);
-                } else {
-                    ensureDir(saveFilePath);
-                    fs.writeFileSync(saveFilePath, decryptedTrackBuffer);
-
-                    reject();
-                }
-            }
-        }
     });
 }
