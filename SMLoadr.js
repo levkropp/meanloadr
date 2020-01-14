@@ -1028,7 +1028,7 @@ function downloadSingleTrack(id, trackInfos = {}, albumInfos = {}, isAlternative
                 trackInfos = originalTrackInfos;
             }
 
-            trackQuality = getValidTrackQuality(originalTrackInfos);
+            trackQuality = musicQualities.MP3_320;
 
             originalTrackInfos.SNG_TITLE_VERSION = originalTrackInfos.SNG_TITLE;
 
@@ -1225,7 +1225,6 @@ function downloadSingleTrack(id, trackInfos = {}, albumInfos = {}, isAlternative
                         }
                     });
                 } else {
-                    addTrackToPlaylist(saveFilePath, trackInfos);
 
                     const error = {
                         message: trackInfos.ALB_ART_NAME + ' - ' + trackInfos.SNG_TITLE_VERSION + ' \n  › Song already exists',
@@ -1259,7 +1258,6 @@ function downloadSingleTrack(id, trackInfos = {}, albumInfos = {}, isAlternative
                 downloadStateInstance.success(originalTrackInfos.SNG_ID, successMessage);
 
                 downloadStateInstance.removeCurrentlyDownloadingPath(saveFilePath);
-                addTrackToPlaylist(saveFilePath, trackInfos);
 
                 resolve();
             }).catch(() => {
@@ -1267,8 +1265,6 @@ function downloadSingleTrack(id, trackInfos = {}, albumInfos = {}, isAlternative
                 downloadStateInstance.warn(originalTrackInfos.SNG_ID, warningMessage);
 
                 downloadStateInstance.removeCurrentlyDownloadingPath(saveFilePath);
-                addTrackToPlaylist(saveFilePath, trackInfos);
-
                 resolve();
             });
         }
@@ -1556,35 +1552,6 @@ function getTrackLyrics(id) {
 }
 
 /**
- * Add a track to the playlist file content.
- *
- * @param {String} saveFilePath
- * @param {Object} trackInfos
- */
-function addTrackToPlaylist(saveFilePath, trackInfos) {
-    if (PLAYLIST_FILE_ITEMS != null) {
-        let saveFilePathForPlaylist = saveFilePath.replace(/\\+/g, '/');
-
-        if (!trackInfos.ALB_ART_NAME) {
-            trackInfos.ALB_ART_NAME = trackInfos.ART_NAME;
-        }
-
-        let artistName = multipleWhitespacesToSingle(sanitizeFilename(trackInfos.ALB_ART_NAME));
-
-        if ('' === artistName.trim()) {
-            artistName = 'Unknown artist';
-        }
-
-        PLAYLIST_FILE_ITEMS[trackInfos.SNG_ID] = {
-            trackTitle: trackInfos.SNG_TITLE_VERSION,
-            trackArtist: artistName,
-            trackDuration: trackInfos.DURATION,
-            trackSavePath: saveFilePathForPlaylist
-        };
-    }
-}
-
-/**
  * Capitalizes the first letter of a string
  *
  * @param {String} string
@@ -1639,73 +1606,6 @@ function getTrackDownloadUrl(trackInfos, trackQuality) {
     const cdn = trackInfos.MD5_ORIGIN[0];
 
     return 'https://e-cdns-proxy-' + cdn + '.dzcdn.net/mobile/1/' + encryptionService.getSongFileName(trackInfos, trackQuality);
-}
-
-/**
- * Parse file size and check if it is defined & is non zero zero
- *
- * @returns {Boolean}
- */
-function fileSizeIsDefined(filesize) {
-    return !('undefined' === typeof filesize || 0 === parseInt(filesize));
-}
-
-/**
- * Get a downloadable track quality.
- *
- * FLAC -> 320kbps -> 128kbps
- * 320kbps -> FLAC -> 128kbps
- * 128kbps -> 320kbps -> FLAC
- *
- * @param {Object} trackInfos
- *
- * @returns {Object|Boolean}
- */
-function getValidTrackQuality(trackInfos) {
-    if (fileSizeIsDefined(trackInfos.FILESIZE_MP3_MISC)) {
-        return musicQualities.MP3_MISC;
-    }
-
-    if (musicQualities.FLAC === selectedMusicQuality) {
-        if (!fileSizeIsDefined(trackInfos.FILESIZE_FLAC)) {
-            if (!fileSizeIsDefined(trackInfos.FILESIZE_MP3_320)) {
-                if (!fileSizeIsDefined(trackInfos.FILESIZE_MP3_128)) {
-                    return false;
-                }
-                return musicQualities.MP3_128;
-            }
-            return musicQualities.MP3_320;
-        }
-        return musicQualities.FLAC;
-    }
-
-    if (musicQualities.MP3_320 === selectedMusicQuality) {
-        if (!fileSizeIsDefined(trackInfos.FILESIZE_MP3_320)) {
-            if (!fileSizeIsDefined(trackInfos.FILESIZE_FLAC)) {
-                if (!fileSizeIsDefined(trackInfos.FILESIZE_MP3_128)) {
-                    return false;
-                }
-                return musicQualities.MP3_128;
-            }
-            return musicQualities.FLAC;
-        }
-        return musicQualities.MP3_320;
-    }
-
-    if (musicQualities.MP3_128 === selectedMusicQuality) {
-        if (!fileSizeIsDefined(trackInfos.FILESIZE_MP3_128)) {
-            if (!fileSizeIsDefined(trackInfos.FILESIZE_MP3_320)) {
-                if (!fileSizeIsDefined(trackInfos.FILESIZE_FLAC)) {
-                    return false;
-                }
-                return musicQualities.FLAC;
-            }
-            return musicQualities.MP3_320;
-        }
-        return musicQualities.MP3_128;
-    }
-
-    return false;
 }
 
 /**
