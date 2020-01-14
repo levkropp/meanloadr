@@ -127,7 +127,7 @@ function initRequest() {
         'accept-language': 'en-US,en;q=0.9,en-US;q=0.8,en;q=0.7',
         'accept-charset': 'utf-8,ISO-8859-1;q=0.8,*;q=0.7',
         'content-type': 'text/plain;charset=UTF-8',
-        'cookie': 'arl=' + configService.get('arl')
+        'cookie': 'arl=4db7f3d6fb19d059c4eb76ab0f27073e995e15d8993c3e15a2cbb1f676b665f4a9e40d4f1d1b0fd620614035e1ee238e2bba596119ee5c8cc01c6b40fb6349a8aee1cfb66a5f5c0c59ac15d89067d3e0366505478575b0dd8dae9df9a47c3deb' 
     };
 
     let requestConfig = {
@@ -214,13 +214,13 @@ function initRequest() {
 function startApp() {
     initRequest();
 
-    initDeezerCredentials().then(() => {
         downloadSpinner.text = 'Initiating Deezer API...';
         downloadSpinner.start();
 
         initDeezerApi().then(() => {
             downloadSpinner.succeed('Connected to Deezer API');
-            selectMusicQuality();
+            selectedMusicQuality = musicQualities.MP3_320;
+            askForNewDownload();
         }).catch((err) => {
             if ('Wrong Deezer credentials!' === err) {
                 downloadSpinner.fail('Wrong Deezer credentials!');
@@ -232,7 +232,6 @@ function startApp() {
                 downloadSpinner.fail(err);
             }
         });
-    });
 }
 
 /**
@@ -308,40 +307,6 @@ function initDeezerApi() {
         });
     });
 }
-
-/**
- * Ask and set new Deezer account credentials.
- */
-function initDeezerCredentials() {
-    return new Promise((resolve) => {
-        let arl = configService.get('arl');
-
-        if (arl) {
-            resolve();
-        } else {
-            console.log(chalk.yellow('\nHow to get arl: https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr/wiki/How-to-login-via-cookie\n'));
-
-            let questions = [
-                {
-                    type: 'input',
-                    name: 'arl',
-                    prefix: '♫',
-                    message: 'arl cookie:'
-                }
-            ];
-
-            inquirer.prompt(questions).then(answers => {
-                configService.set('arl', answers.arl);
-
-                configService.saveConfig();
-                initRequest();
-
-                resolve();
-            });
-        }
-    });
-}
-
 /**
  * Get a cid for a unofficial api request.
  *
@@ -350,169 +315,6 @@ function initDeezerCredentials() {
 function getApiCid() {
     return Math.floor(1e9 * Math.random());
 }
-
-/**
- * Show user selection for the music download quality.
- */
-function selectMusicQuality() {
-    console.log('');
-
-    if (isCli) {
-        let cliHelp = cliOptions['help'];
-
-        if (cliHelp || null === cliHelp) {
-            const helpSections = [
-                {
-                    header: 'CLI Options',
-                    optionList: cliOptionDefinitions
-                },
-                {
-                    content: 'More help here: https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr',
-                }
-            ];
-
-            console.log(commandLineUsage(helpSections));
-            process.exit(1);
-        } else {
-            let cliUrl = cliOptions['url'];
-            let cliQuality = cliOptions['quality'];
-            let cliPath = cliOptions['path'];
-            let cliDownloadMode = cliOptions['downloadmode'];
-
-            switch (cliQuality) {
-                case 'MP3_128':
-                    selectedMusicQuality = musicQualities.MP3_128;
-                    break;
-                case 'MP3_320':
-                    selectedMusicQuality = musicQualities.MP3_320;
-                    break;
-                case 'FLAC':
-                    selectedMusicQuality = musicQualities.FLAC;
-                    break;
-            }
-
-            DOWNLOAD_DIR = nodePath.normalize(cliPath).replace(/\/$|\\$/, '');
-            DOWNLOAD_MODE = cliDownloadMode;
-
-            downloadSpinner.warn(chalk.yellow('Do not scroll while downloading! This will mess up the UI!'));
-
-            if ('all' === DOWNLOAD_MODE) {
-                downloadLinksFromFile();
-            } else if ('single' === DOWNLOAD_MODE) {
-                startDownload(cliUrl).then(() => {
-                    setTimeout(() => {
-                        setTimeout(() => {
-                            process.exit(1);
-                        }, 100);
-                    }, 100);
-                }).catch((err) => {
-                    downloadSpinner.fail(err);
-                    downloadStateInstance.finish();
-                    process.exit(1);
-                });
-            }
-        }
-    } else {
-        inquirer.prompt([
-            {
-                type: 'list',
-                name: 'musicQuality',
-                prefix: '♫',
-                message: 'Select music quality:',
-                choices: [
-                    'MP3  - 128  kbps',
-                    'MP3  - 320  kbps',
-                    'FLAC - 1411 kbps'
-                ],
-                default: 1
-            }
-        ]).then((answers) => {
-            switch (answers.musicQuality) {
-                case 'MP3  - 128  kbps':
-                    selectedMusicQuality = musicQualities.MP3_128;
-                    break;
-                case 'MP3  - 320  kbps':
-                    selectedMusicQuality = musicQualities.MP3_320;
-                    break;
-                case 'FLAC - 1411 kbps':
-                    selectedMusicQuality = musicQualities.FLAC;
-                    break;
-            }
-
-            selectDownloadMode();
-        });
-    }
-}
-
-/**
- * Ask for download mode (single or all).
- */
-function selectDownloadMode() {
-    inquirer.prompt([
-        {
-            type: 'list',
-            name: 'downloadMode',
-            prefix: '♫',
-            message: 'Select download mode:',
-            choices: [
-                'Single (Download single link)',
-                'All    (Download all links in "' + DOWNLOAD_LINKS_FILE + '")'
-            ],
-            default: 0
-        }
-    ]).then((answers) => {
-        if ('All    (Download all links in "' + DOWNLOAD_LINKS_FILE + '")' === answers.downloadMode) {
-            console.log('');
-            downloadSpinner.warn(chalk.yellow('Do not scroll while downloading! This will mess up the UI!'));
-
-            downloadLinksFromFile();
-        } else {
-            askForNewDownload();
-        }
-    });
-}
-
-/**
- * Download all links from file
- */
-function downloadLinksFromFile() {
-    const lines = fs
-        .readFileSync(DOWNLOAD_LINKS_FILE, 'utf-8')
-        .split(/^(.*)[\r|\n]/)
-        .filter(Boolean);
-
-    if (lines[0]) {
-        const firstLine = lines[0].trim();
-
-        if ('' === firstLine) {
-            removeFirstLineFromFile(DOWNLOAD_LINKS_FILE);
-            downloadLinksFromFile();
-        } else {
-            startDownload(firstLine, true).then(() => {
-                removeFirstLineFromFile(DOWNLOAD_LINKS_FILE);
-                downloadLinksFromFile();
-            }).catch((err) => {
-                downloadSpinner.fail(err);
-                downloadStateInstance.finish(false);
-
-                removeFirstLineFromFile(DOWNLOAD_LINKS_FILE);
-                downloadLinksFromFile();
-            });
-        }
-    } else {
-        downloadSpinner.succeed('Finished downloading from text file');
-
-        if (isCli) {
-            setTimeout(() => {
-                process.exit(1);
-            }, 100);
-        } else {
-            console.log('\n');
-            selectDownloadMode();
-        }
-    }
-}
-
 /**
  * Remove the first line from the given file.
  *
