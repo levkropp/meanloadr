@@ -168,7 +168,7 @@ function initRequest() {
 /**
  * Application init.
  */
-(function initApp() {
+function initApp() {
     process.on('unhandledRejection', (reason, p) => {
         console.error('\n' + reason + '\nUnhandled Rejection at Promise' + JSON.stringify(p) + '\n');
     });
@@ -204,7 +204,7 @@ function initRequest() {
     }
 
     startApp();
-})();
+};
 
 /**
  * Start the app.
@@ -1394,51 +1394,6 @@ function getAlbumInfosOfficialApi(id) {
         });
     });
 }
-
-/**
- * Get lyrics of a track by id.
- *
- * @param {Number} id
- */
-function getTrackLyrics(id) {
-    return new Promise((resolve, reject) => {
-        return requestWithCache({
-            method: 'POST',
-            url: unofficialApiUrl,
-            qs: Object.assign(unofficialApiQueries, {
-                method: 'song.getLyrics',
-                cid: getApiCid()
-            }),
-            body: {
-                sng_id: id
-            },
-            json: true,
-            jar: true
-        }).then((response) => {
-
-            if (response && 0 === Object.keys(response.error).length && response.results && response.results.LYRICS_ID) {
-                let trackLyrics = response.results;
-
-                resolve(trackLyrics);
-            } else if (response.error.VALID_TOKEN_REQUIRED) {
-                initDeezerApi();
-
-                setTimeout(() => {
-                    getTrackLyrics(id).then((trackLyrics) => {
-                        resolve(trackLyrics);
-                    }).catch((err) => {
-                        reject(err);
-                    });
-                }, 1000);
-            } else {
-                reject({statusCode: 404});
-            }
-        }).catch(() => {
-            reject({statusCode: 404});
-        });
-    });
-}
-
 /**
  * Capitalizes the first letter of a string
  *
@@ -1565,3 +1520,5 @@ function addTrackTags(decryptedTrackBuffer, trackInfos, saveFilePath, numberRetr
 
     });
 }
+
+//Okay now put some expressJS shit in here.
