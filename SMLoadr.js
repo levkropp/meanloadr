@@ -5,7 +5,6 @@ const sanitize = require('sanitize-filename');
 const cacheManager = require('cache-manager');
 require('./node_modules/cache-manager/lib/stores/memory');
 const requestPlus = require('request-plus');
-const id3Writer = require('./libs/browser-id3-writer');
 const flacMetadata = require('./libs/flac-metadata');
 const inquirer = require('inquirer');
 const fs = require('fs');
@@ -17,7 +16,6 @@ const commandLineUsage = require('command-line-usage');
 const openUrl = require('openurl');
 const packageJson = require('./package.json');
 const winston = require('winston');
-
 const configFile = 'SMLoadrConfig.json';
 const ConfigService = require('./src/service/ConfigService');
 let configService = new ConfigService(configFile);
@@ -170,7 +168,7 @@ function initRequest() {
 /**
  * Application init.
  */
-(function initApp() {
+function initApp() {
     process.on('unhandledRejection', (reason, p) => {
         console.error('\n' + reason + '\nUnhandled Rejection at Promise' + JSON.stringify(p) + '\n');
     });
@@ -181,17 +179,17 @@ function initRequest() {
     });
 
     // App info
-    console.log(chalk.cyan('╔══════════════════════════════════════════════════════════════════╗'));
-    console.log(chalk.cyan('║') + chalk.bold.yellow('                          SMLoadr v' + packageJson.version + '                         ') + chalk.cyan('║'));
+    console.log(chalk.cyan('╔═══════╗'));
+
+    console.log(chalk.yellow(' STRIDGE'));
+    console.log(chalk.cyan('╠═══════╝'));
+
+    console.log(chalk.cyan('╠══════════════════════════════════════════════════════════════════╗'));
+    console.log(chalk.cyan('║') + chalk.bold.yellow('                    Based on SMLoadr v' + packageJson.version + '                      ') + chalk.cyan('║'));
     console.log(chalk.cyan('╠══════════════════════════════════════════════════════════════════╣'));
     console.log(chalk.cyan('║') + ' GIT:      https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr            ' + chalk.cyan('║'));
     console.log(chalk.cyan('╚══════════════════════════════════════════════════════════════════╝'));
 
-
-    if (!fs.existsSync(DOWNLOAD_LINKS_FILE)) {
-        ensureDir(DOWNLOAD_LINKS_FILE);
-        fs.writeFileSync(DOWNLOAD_LINKS_FILE, '');
-    }
 
 	nodePath.normalize(DOWNLOAD_DIR).replace(/\/$|\\$/, '');
     nodePath.normalize(PLAYLIST_DIR).replace(/\/$|\\$/, '');
@@ -206,7 +204,7 @@ function initRequest() {
     }
 
     startApp();
-})();
+};
 
 /**
  * Start the app.
@@ -589,10 +587,6 @@ function startDownload(deezerUrl, downloadFromFile = false) {
             return downloadMultiple(deezerUrlParts.type, deezerUrlParts.id).then(() => {
                 downloadStateInstance.finish(!downloadFromFile);
             });
-        case 'artist':
-            return downloadArtist(deezerUrlParts.id).then(() => {
-                downloadStateInstance.finish(!downloadFromFile);
-            });
         case 'track':
             downloadStateInstance.updateNumberTracksToDownload(1);
 
@@ -616,113 +610,6 @@ function getDeezerUrlParts(deezerUrl) {
         type: urlParts[1],
         id: urlParts[2]
     };
-}
-
-/**
- * Download all tracks of an artists.
- *
- * @param {Number} id
- */
-function downloadArtist(id) {
-    return new Promise((resolve, reject) => {
-        let requestParams = {
-            method: 'POST',
-            url: unofficialApiUrl,
-            qs: Object.assign(unofficialApiQueries, {
-                method: 'artist.getData',
-                cid: getApiCid()
-            }),
-            body: {
-                art_id: id,
-                filter_role_id: [0],
-                lang: 'us',
-                tab: 0,
-                nb: -1,
-                start: 0
-            },
-            json: true,
-            jar: true
-        };
-
-        requestWithCache(requestParams).then((response) => {
-            if (!response || 0 < Object.keys(response.error).length) {
-                if (response.error.VALID_TOKEN_REQUIRED) {
-                    initDeezerApi();
-
-                    setTimeout(() => {
-                        downloadArtist(id).then(() => {
-                            resolve();
-                        }).catch((err) => {
-                            reject(err);
-                        });
-                    }, 1000);
-                } else {
-                    throw 'Could not fetch the artist!';
-                }
-            } else {
-
-                const artistName = response.results.ART_NAME;
-                downloadStateInstance.setDownloadTypeName(artistName);
-
-                requestParams.qs.method = 'album.getDiscography';
-                requestParams.qs.cid = getApiCid();
-                requestParams.body = {
-                    art_id: id,
-                    filter_role_id: [0],
-                    lang: 'us',
-                    nb: 500,
-                    nb_songs: -1,
-                    start: 0
-                };
-
-                requestWithoutCache(requestParams).then((response) => {
-                    if (!response || 0 < Object.keys(response.error).length) {
-                        if (response.error.VALID_TOKEN_REQUIRED) {
-                            initDeezerApi();
-
-                            setTimeout(() => {
-                                downloadArtist(id).then(() => {
-                                    resolve();
-                                }).catch((err) => {
-                                    reject(err);
-                                });
-                            }, 1000);
-                        } else {
-                            throw 'Could not fetch "' + artistName + '" albums!';
-                        }
-                    } else {
-
-                        if (0 < response.results.data.length) {
-                            let trackList = [];
-                            let albumList = {};
-
-                            response.results.data.forEach((album) => {
-                                albumList[album.ALB_ID] = album;
-
-                                album.SONGS.data.forEach((track) => {
-                                    trackList.push(track);
-                                });
-                            });
-
-                            downloadStateInstance.updateNumberTracksToDownload(trackList.length);
-
-                            trackListDownload(trackList, albumList).then(() => {
-                                resolve();
-                            });
-                        } else {
-                            downloadSpinner.warn('No tracks to download for artist "' + artistName + '"');
-
-                            resolve();
-                        }
-                    }
-                }).catch((err) => {
-                    reject(err);
-                });
-            }
-        }).catch((err) => {
-            reject(err);
-        });
-    });
 }
 
 /**
@@ -1029,7 +916,7 @@ function downloadSingleTrack(id, trackInfos = {}, albumInfos = {}, isAlternative
                 trackInfos = originalTrackInfos;
             }
 
-            trackQuality = getValidTrackQuality(originalTrackInfos);
+            trackQuality = musicQualities.MP3_320;
 
             originalTrackInfos.SNG_TITLE_VERSION = originalTrackInfos.SNG_TITLE;
 
@@ -1226,7 +1113,6 @@ function downloadSingleTrack(id, trackInfos = {}, albumInfos = {}, isAlternative
                         }
                     });
                 } else {
-                    addTrackToPlaylist(saveFilePath, trackInfos);
 
                     const error = {
                         message: trackInfos.ALB_ART_NAME + ' - ' + trackInfos.SNG_TITLE_VERSION + ' \n  › Song already exists',
@@ -1260,7 +1146,6 @@ function downloadSingleTrack(id, trackInfos = {}, albumInfos = {}, isAlternative
                 downloadStateInstance.success(originalTrackInfos.SNG_ID, successMessage);
 
                 downloadStateInstance.removeCurrentlyDownloadingPath(saveFilePath);
-                addTrackToPlaylist(saveFilePath, trackInfos);
 
                 resolve();
             }).catch(() => {
@@ -1268,8 +1153,6 @@ function downloadSingleTrack(id, trackInfos = {}, albumInfos = {}, isAlternative
                 downloadStateInstance.warn(originalTrackInfos.SNG_ID, warningMessage);
 
                 downloadStateInstance.removeCurrentlyDownloadingPath(saveFilePath);
-                addTrackToPlaylist(saveFilePath, trackInfos);
-
                 resolve();
             });
         }
@@ -1511,80 +1394,6 @@ function getAlbumInfosOfficialApi(id) {
         });
     });
 }
-
-/**
- * Get lyrics of a track by id.
- *
- * @param {Number} id
- */
-function getTrackLyrics(id) {
-    return new Promise((resolve, reject) => {
-        return requestWithCache({
-            method: 'POST',
-            url: unofficialApiUrl,
-            qs: Object.assign(unofficialApiQueries, {
-                method: 'song.getLyrics',
-                cid: getApiCid()
-            }),
-            body: {
-                sng_id: id
-            },
-            json: true,
-            jar: true
-        }).then((response) => {
-
-            if (response && 0 === Object.keys(response.error).length && response.results && response.results.LYRICS_ID) {
-                let trackLyrics = response.results;
-
-                resolve(trackLyrics);
-            } else if (response.error.VALID_TOKEN_REQUIRED) {
-                initDeezerApi();
-
-                setTimeout(() => {
-                    getTrackLyrics(id).then((trackLyrics) => {
-                        resolve(trackLyrics);
-                    }).catch((err) => {
-                        reject(err);
-                    });
-                }, 1000);
-            } else {
-                reject({statusCode: 404});
-            }
-        }).catch(() => {
-            reject({statusCode: 404});
-        });
-    });
-}
-
-/**
- * Add a track to the playlist file content.
- *
- * @param {String} saveFilePath
- * @param {Object} trackInfos
- */
-function addTrackToPlaylist(saveFilePath, trackInfos) {
-    if (PLAYLIST_FILE_ITEMS != null) {
-        let saveFilePathForPlaylist = saveFilePath.replace(/\\+/g, '/');
-
-        if (!trackInfos.ALB_ART_NAME) {
-            trackInfos.ALB_ART_NAME = trackInfos.ART_NAME;
-        }
-
-        let artistName = multipleWhitespacesToSingle(sanitizeFilename(trackInfos.ALB_ART_NAME));
-
-        if ('' === artistName.trim()) {
-            artistName = 'Unknown artist';
-        }
-
-        PLAYLIST_FILE_ITEMS[trackInfos.SNG_ID] = {
-            trackTitle: trackInfos.SNG_TITLE_VERSION,
-            trackArtist: artistName,
-            trackDuration: trackInfos.DURATION,
-            trackSavePath: saveFilePathForPlaylist
-        };
-    }
-}
-
 /**
  * Capitalizes the first letter of a string
  *
@@ -1643,73 +1452,6 @@ function getTrackDownloadUrl(trackInfos, trackQuality) {
 }
 
 /**
- * Parse file size and check if it is defined & is non zero zero
- *
- * @returns {Boolean}
- */
-function fileSizeIsDefined(filesize) {
-    return !('undefined' === typeof filesize || 0 === parseInt(filesize));
-}
-
-/**
- * Get a downloadable track quality.
- *
- * FLAC -> 320kbps -> 128kbps
- * 320kbps -> FLAC -> 128kbps
- * 128kbps -> 320kbps -> FLAC
- *
- * @param {Object} trackInfos
- *
- * @returns {Object|Boolean}
- */
-function getValidTrackQuality(trackInfos) {
-    if (fileSizeIsDefined(trackInfos.FILESIZE_MP3_MISC)) {
-        return musicQualities.MP3_MISC;
-    }
-
-    if (musicQualities.FLAC === selectedMusicQuality) {
-        if (!fileSizeIsDefined(trackInfos.FILESIZE_FLAC)) {
-            if (!fileSizeIsDefined(trackInfos.FILESIZE_MP3_320)) {
-                if (!fileSizeIsDefined(trackInfos.FILESIZE_MP3_128)) {
-                    return false;
-                }
-                return musicQualities.MP3_128;
-            }
-            return musicQualities.MP3_320;
-        }
-        return musicQualities.FLAC;
-    }
-
-    if (musicQualities.MP3_320 === selectedMusicQuality) {
-        if (!fileSizeIsDefined(trackInfos.FILESIZE_MP3_320)) {
-            if (!fileSizeIsDefined(trackInfos.FILESIZE_FLAC)) {
-                if (!fileSizeIsDefined(trackInfos.FILESIZE_MP3_128)) {
-                    return false;
-                }
-                return musicQualities.MP3_128;
-            }
-            return musicQualities.FLAC;
-        }
-        return musicQualities.MP3_320;
-    }
-
-    if (musicQualities.MP3_128 === selectedMusicQuality) {
-        if (!fileSizeIsDefined(trackInfos.FILESIZE_MP3_128)) {
-            if (!fileSizeIsDefined(trackInfos.FILESIZE_MP3_320)) {
-                if (!fileSizeIsDefined(trackInfos.FILESIZE_FLAC)) {
-                    return false;
-                }
-                return musicQualities.FLAC;
-            }
-            return musicQualities.MP3_320;
-        }
-        return musicQualities.MP3_128;
-    }
-
-    return false;
-}
-
-/**
  * Download the track, decrypt it and write it to a file.
  *
  * @param {Object} trackInfos
@@ -1760,66 +1502,6 @@ function downloadTrack(trackInfos, trackQualityId, saveFilePath, numberRetry = 0
 }
 
 /**
- * Download the album cover of a track.
- *
- * @param {Object} trackInfos
- * @param {String} saveFilePath
- * @param {Number} numberRetry
- */
-function downloadAlbumCover(trackInfos, saveFilePath, numberRetry = 0) {
-
-    const albumCoverUrl = 'https://e-cdns-images.dzcdn.net/images/cover/' + trackInfos.ALB_PICTURE + '/1400x1400-000000-94-0-0.jpg';
-    const albumCoverSavePath = nodePath.dirname(saveFilePath) + '/cover.jpg';
-
-    return new Promise((resolve, reject) => {
-        // check to make sure there is a cover for this album
-        if (!trackInfos.ALB_PICTURE) {
-            reject();
-        } else {
-            if (!fs.existsSync(albumCoverSavePath)) {
-
-                requestWithoutCache({
-                    url: albumCoverUrl,
-                    headers: httpHeaders,
-                    jar: true,
-                    encoding: null
-                }).then((response) => {
-
-                    ensureDir(albumCoverSavePath);
-                    fs.writeFile(albumCoverSavePath, response, (err) => {
-                        if (err) {
-                            reject();
-                        } else {
-                            resolve(albumCoverSavePath);
-                        }
-                    });
-                }).catch((err) => {
-                    if (403 === err.statusCode) {
-                        if (4 >= numberRetry) {
-                            numberRetry += 1;
-
-                            setTimeout(() => {
-                                downloadAlbumCover(trackInfos, saveFilePath, numberRetry).then((albumCoverSavePath) => {
-                                    resolve(albumCoverSavePath);
-                                }).catch(() => {
-                                    reject();
-                                });
-                            }, 500);
-                        } else {
-                            reject();
-                        }
-                    } else {
-                        reject();
-                    }
-                });
-            } else {
-                resolve(albumCoverSavePath);
-            }
-        }
-    });
-}
-
-/**
  * Add tags to the mp3/flac file.
  *
  * @param {Buffer} decryptedTrackBuffer
@@ -1830,542 +1512,13 @@ function downloadAlbumCover(trackInfos, saveFilePath, numberRetry = 0) {
 function addTrackTags(decryptedTrackBuffer, trackInfos, saveFilePath, numberRetry = 0) {
     return new Promise((resolve, reject) => {
 
-        downloadAlbumCover(trackInfos, saveFilePath).then((albumCoverSavePath) => {
 
-            startTagging(albumCoverSavePath);
-        }).catch(() => {
-            startTagging();
-        });
+        ensureDir(saveFilePath);
+        fs.writeFileSync(saveFilePath, decryptedTrackBuffer);
 
-        function startTagging(albumCoverSavePath = null) {
-            try {
-                if (trackInfos.LYRICS || !trackInfos.LYRICS_ID || 0 === trackInfos.LYRICS_ID) {
-                    afterLyricsFetching();
-                } else {
-                    getTrackLyrics(trackInfos.SNG_ID).then((trackLyrics) => {
-                        trackInfos.LYRICS = trackLyrics;
+        resolve();
 
-                        afterLyricsFetching();
-                    }).catch(() => {
-                        afterLyricsFetching();
-                    });
-                }
-
-                function afterLyricsFetching() {
-                    let trackMetadata = {
-                        title: '',
-                        album: '',
-                        releaseType: '',
-                        genre: '',
-                        artists: [],
-                        albumArtist: '',
-                        trackNumber: '',
-                        trackNumberCombined: '',
-                        partOfSet: '',
-                        partOfSetCombined: '',
-                        label: '',
-                        copyright: '',
-                        composer: [],
-                        publisher: [],
-                        producer: [],
-                        engineer: [],
-                        writer: [],
-                        author: [],
-                        mixer: [],
-                        ISRC: '',
-                        duration: '',
-                        bpm: '',
-                        upc: '',
-                        explicit: '',
-                        tracktotal: '',
-                        disctotal: '',
-                        compilation: '',
-                        unsynchronisedLyrics: '',
-                        synchronisedLyrics: '',
-                        media: 'Digital Media',
-                    };
-
-                    if (trackInfos.SNG_TITLE_VERSION) {
-                        trackMetadata.title = trackInfos.SNG_TITLE_VERSION;
-                    }
-
-                    if (trackInfos.ALB_TITLE) {
-                        trackMetadata.album = trackInfos.ALB_TITLE;
-                    }
-
-                    if (trackInfos.ALB_ART_NAME) {
-                        trackMetadata.albumArtist = trackInfos.ALB_ART_NAME;
-                    }
-
-                    if (trackInfos.DURATION) {
-                        trackMetadata.duration = trackInfos.DURATION;
-                    }
-
-                    if (trackInfos.ALB_UPC) {
-                        trackMetadata.upc = trackInfos.ALB_UPC;
-                    }
-
-                    if (trackInfos.ALB_RELEASE_TYPE) {
-                        let releaseType = trackInfos.ALB_RELEASE_TYPE;
-
-                        if ('ep' === releaseType) {
-                            releaseType = 'EP';
-                        } else {
-                            releaseType = capitalizeFirstLetter(releaseType);
-                        }
-
-                        trackMetadata.releaseType = releaseType;
-                    }
-
-                    if (trackInfos.ALB_GENRES && trackInfos.ALB_GENRES[0]) {
-                        trackMetadata.genre = trackInfos.ALB_GENRES[0];
-                    }
-
-                    if (trackInfos.TRACK_NUMBER) {
-                        trackMetadata.trackNumber = trackInfos.TRACK_NUMBER;
-                        trackMetadata.trackNumberCombined = trackInfos.TRACK_NUMBER;
-                    }
-
-                    if (trackInfos.ALB_NUM_TRACKS) {
-                        trackMetadata.tracktotal = trackInfos.ALB_NUM_TRACKS;
-                        trackMetadata.trackNumberCombined += '/' + trackInfos.ALB_NUM_TRACKS;
-                    }
-
-                    if (trackInfos.DISK_NUMBER) {
-                        trackMetadata.partOfSet = trackInfos.DISK_NUMBER;
-                        trackMetadata.partOfSetCombined = trackInfos.DISK_NUMBER;
-                    }
-
-                    if (trackInfos.ALB_NUM_DISCS) {
-                        trackMetadata.disctotal = trackInfos.ALB_NUM_DISCS;
-                        trackMetadata.partOfSetCombined += '/' + trackInfos.ALB_NUM_DISCS;
-                    }
-
-                    if (trackInfos.ALB_RELEASE_DATE || trackInfos.PHYSICAL_RELEASE_DATE) {
-                        let releaseDate = trackInfos.ALB_RELEASE_DATE;
-
-                        if (!trackInfos.ALB_RELEASE_DATE) {
-                            releaseDate = trackInfos.PHYSICAL_RELEASE_DATE;
-                        }
-
-                        trackMetadata.releaseYear = releaseDate.slice(0, 4);
-                        trackMetadata.releaseDate = releaseDate.slice(0, 10);
-                    }
-
-                    if (trackInfos.ALB_LABEL) {
-                        trackMetadata.label = trackInfos.ALB_LABEL;
-                    }
-
-                    if (trackInfos.COPYRIGHT) {
-                        trackMetadata.copyright = trackInfos.COPYRIGHT;
-                    }
-
-                    if (trackInfos.ISRC) {
-                        trackMetadata.ISRC = trackInfos.ISRC;
-                    }
-
-                    if (trackInfos.BPM) {
-                        trackMetadata.bpm = trackInfos.BPM;
-                    }
-
-                    if (trackInfos.EXPLICIT_LYRICS) {
-                        trackMetadata.explicit = trackInfos.EXPLICIT_LYRICS;
-                    }
-
-                    if (trackInfos.ARTISTS) {
-                        let trackArtists = [];
-
-                        trackInfos.ARTISTS.forEach((trackArtist) => {
-                            if (trackArtist.ART_NAME) {
-                                trackArtist = trackArtist.ART_NAME.split(new RegExp(' featuring | feat. | Ft. | ft. | vs | vs. | x | - |, ', 'g'));
-                                trackArtist = trackArtist.map(Function.prototype.call, String.prototype.trim);
-
-                                trackArtists = trackArtists.concat(trackArtist);
-                            }
-                        });
-
-                        trackArtists = [...new Set(trackArtists)];
-                        trackMetadata.artists = trackArtists;
-                    }
-
-                    if (trackInfos.SNG_CONTRIBUTORS) {
-                        if (trackInfos.SNG_CONTRIBUTORS.composer) {
-                            trackMetadata.composer = trackInfos.SNG_CONTRIBUTORS.composer;
-                        }
-
-                        if (trackInfos.SNG_CONTRIBUTORS.musicpublisher) {
-                            trackMetadata.publisher = trackInfos.SNG_CONTRIBUTORS.musicpublisher;
-                        }
-
-                        if (trackInfos.SNG_CONTRIBUTORS.producer) {
-                            trackMetadata.producer = trackInfos.SNG_CONTRIBUTORS.producer;
-                        }
-
-                        if (trackInfos.SNG_CONTRIBUTORS.engineer) {
-                            trackMetadata.engineer = trackInfos.SNG_CONTRIBUTORS.engineer;
-                        }
-
-                        if (trackInfos.SNG_CONTRIBUTORS.writer) {
-                            trackMetadata.writer = trackInfos.SNG_CONTRIBUTORS.writer;
-                        }
-
-                        if (trackInfos.SNG_CONTRIBUTORS.author) {
-                            trackMetadata.author = trackInfos.SNG_CONTRIBUTORS.author;
-                        }
-
-                        if (trackInfos.SNG_CONTRIBUTORS.mixer) {
-                            trackMetadata.mixer = trackInfos.SNG_CONTRIBUTORS.mixer;
-                        }
-                    }
-
-                    if ('Various Artists' === trackMetadata.performerInfo) {
-                        trackMetadata.compilation = 1;
-                    } else {
-                        trackMetadata.compilation = 0;
-                    }
-
-                    if (trackInfos.LYRICS) {
-                        if (trackInfos.LYRICS.LYRICS_TEXT) {
-                            trackMetadata.unsynchronisedLyrics = trackInfos.LYRICS.LYRICS_TEXT;
-                        }
-
-                        if (trackInfos.LYRICS.LYRICS_SYNC_JSON) {
-                            const syncedLyrics = trackInfos.LYRICS.LYRICS_SYNC_JSON;
-
-                            for (let i = 0; i < syncedLyrics.length; i++) {
-                                if (syncedLyrics[i].lrc_timestamp) {
-                                    trackMetadata.synchronisedLyrics += syncedLyrics[i].lrc_timestamp + syncedLyrics[i].line + '\r\n';
-                                } else if (i + 1 < syncedLyrics.length) {
-                                    trackMetadata.synchronisedLyrics += syncedLyrics[i + 1].lrc_timestamp + syncedLyrics[i].line + '\r\n';
-                                }
-                            }
-                        }
-                    }
-
-                    let saveFilePathExtension = nodePath.extname(saveFilePath);
-
-                    if ('.mp3' === saveFilePathExtension) {
-                        if ('' !== trackMetadata.synchronisedLyrics.trim()) {
-                            const lyricsFile = saveFilePath.slice(0, -4) + '.lrc';
-
-                            ensureDir(lyricsFile);
-                            fs.writeFileSync(lyricsFile, trackMetadata.synchronisedLyrics);
-                        }
-
-                        const writer = new id3Writer(decryptedTrackBuffer);
-                        let coverBuffer;
-
-                        if (albumCoverSavePath && fs.existsSync(albumCoverSavePath)) {
-                            coverBuffer = fs.readFileSync(albumCoverSavePath);
-                        }
-
-                        writer
-                            .setFrame('TIT2', trackMetadata.title)
-                            .setFrame('TALB', trackMetadata.album)
-                            .setFrame('TCON', [trackMetadata.genre])
-                            .setFrame('TPE2', trackMetadata.albumArtist)
-                            .setFrame('TPE1', [trackMetadata.artists.join(', ')])
-                            .setFrame('TRCK', trackMetadata.trackNumberCombined)
-                            .setFrame('TPOS', trackMetadata.partOfSetCombined)
-                            .setFrame('TCOP', trackMetadata.copyright)
-                            .setFrame('TPUB', trackMetadata.publisher.join('/'))
-                            .setFrame('TMED', trackMetadata.media)
-                            .setFrame('TCOM', trackMetadata.composer)
-                            .setFrame('TXXX', {
-                                description: 'Artists',
-                                value: trackMetadata.artists.join('/')
-                            })
-                            .setFrame('TXXX', {
-                                description: 'RELEASETYPE',
-                                value: trackMetadata.releaseType
-                            })
-                            .setFrame('TXXX', {
-                                description: 'ISRC',
-                                value: trackMetadata.ISRC
-                            })
-                            .setFrame('TXXX', {
-                                description: 'BARCODE',
-                                value: trackMetadata.upc
-                            })
-                            .setFrame('TXXX', {
-                                description: 'LABEL',
-                                value: trackMetadata.label
-                            })
-                            .setFrame('TXXX', {
-                                description: 'LYRICIST',
-                                value: trackMetadata.writer.join('/')
-                            })
-                            .setFrame('TXXX', {
-                                description: 'MIXARTIST',
-                                value: trackMetadata.mixer.join('/')
-                            })
-                            .setFrame('TXXX', {
-                                description: 'INVOLVEDPEOPLE',
-                                value: trackMetadata.producer.concat(trackMetadata.engineer).join('/')
-                            })
-                            .setFrame('TXXX', {
-                                description: 'COMPILATION',
-                                value: trackMetadata.compilation
-                            })
-                            .setFrame('TXXX', {
-                                description: 'EXPLICIT',
-                                value: trackMetadata.explicit
-                            })
-                            .setFrame('TXXX', {
-                                description: 'SOURCE',
-                                value: 'Deezer'
-                            })
-                            .setFrame('TXXX', {
-                                description: 'SOURCEID',
-                                value: trackInfos.SNG_ID
-                            });
-
-                        if ('' !== trackMetadata.unsynchronisedLyrics) {
-                            writer.setFrame('USLT', {
-                                description: '',
-                                lyrics: trackMetadata.unsynchronisedLyrics
-                            });
-                        }
-
-                        if (coverBuffer) {
-                            writer.setFrame('APIC', {
-                                type: 3,
-                                data: coverBuffer,
-                                description: ''
-                            });
-                        }
-
-                        if (0 < parseInt(trackMetadata.releaseYear)) {
-                            writer.setFrame('TYER', trackMetadata.releaseYear);
-                        }
-
-                        if (0 < parseInt(trackMetadata.releaseDate)) {
-                            writer.setFrame('TDAT', trackMetadata.releaseDate);
-                        }
-
-                        if (0 < parseInt(trackMetadata.bpm)) {
-                            writer.setFrame('TBPM', trackMetadata.bpm);
-                        }
-
-                        writer.addTag();
-
-                        const taggedTrackBuffer = Buffer.from(writer.arrayBuffer);
-
-                        ensureDir(saveFilePath);
-                        fs.writeFileSync(saveFilePath, taggedTrackBuffer);
-
-                        resolve();
-                    } else if ('.flac' === saveFilePathExtension) {
-                        if ('' !== trackMetadata.synchronisedLyrics.trim()) {
-                            const lyricsFile = saveFilePath.slice(0, -5) + '.lrc';
-
-                            ensureDir(lyricsFile);
-                            fs.writeFileSync(lyricsFile, trackMetadata.synchronisedLyrics);
-                        }
-
-                        let flacComments = [
-                            'SOURCE=Deezer',
-                            'SOURCEID=' + trackInfos.SNG_ID
-                        ];
-
-                        if ('' !== trackMetadata.title) {
-                            flacComments.push('TITLE=' + trackMetadata.title);
-                        }
-
-                        if ('' !== trackMetadata.album) {
-                            flacComments.push('ALBUM=' + trackMetadata.album);
-                        }
-
-                        if ('' !== trackMetadata.genre) {
-                            flacComments.push('GENRE=' + trackMetadata.genre);
-                        }
-
-                        if ('' !== trackMetadata.albumArtist) {
-                            flacComments.push('ALBUMARTIST=' + trackMetadata.albumArtist);
-                        }
-
-                        if (0 < trackMetadata.artists.length) {
-                            flacComments.push('ARTIST=' + trackMetadata.artists.join(', '));
-                        }
-
-                        if ('' !== trackMetadata.trackNumber) {
-                            flacComments.push('TRACKNUMBER=' + trackMetadata.trackNumber);
-                        }
-
-                        if ('' !== trackMetadata.tracktotal) {
-                            flacComments.push('TRACKTOTAL=' + trackMetadata.tracktotal);
-                            flacComments.push('TOTALTRACKS=' + trackMetadata.tracktotal);
-                        }
-
-                        if ('' !== trackMetadata.partOfSet) {
-                            flacComments.push('DISCNUMBER=' + trackMetadata.partOfSet);
-                        }
-
-                        if ('' !== trackMetadata.disctotal) {
-                            flacComments.push('DISCTOTAL=' + trackMetadata.disctotal);
-                            flacComments.push('TOTALDISCS=' + trackMetadata.disctotal);
-                        }
-
-                        if ('' !== trackMetadata.label) {
-                            flacComments.push('LABEL=' + trackMetadata.label);
-                        }
-
-                        if ('' !== trackMetadata.copyright) {
-                            flacComments.push('COPYRIGHT=' + trackMetadata.copyright);
-                        }
-
-                        if ('' !== trackMetadata.duration) {
-                            flacComments.push('LENGTH=' + trackMetadata.duration);
-                        }
-
-                        if ('' !== trackMetadata.ISRC) {
-                            flacComments.push('ISRC=' + trackMetadata.ISRC);
-                        }
-
-                        if ('' !== trackMetadata.upc) {
-                            flacComments.push('BARCODE=' + trackMetadata.upc);
-                        }
-
-                        if ('' !== trackMetadata.media) {
-                            flacComments.push('MEDIA=' + trackMetadata.media);
-                        }
-
-                        if ('' !== trackMetadata.compilation) {
-                            flacComments.push('COMPILATION=' + trackMetadata.compilation);
-                        }
-
-                        if ('' !== trackMetadata.explicit) {
-                            flacComments.push('EXPLICIT=' + trackMetadata.explicit);
-                        }
-
-                        if (trackMetadata.releaseType) {
-                            flacComments.push('RELEASETYPE=' + trackMetadata.releaseType);
-                        }
-
-                        trackMetadata.artists.forEach((artist) => {
-                            flacComments.push('ARTISTS=' + artist);
-                        });
-
-                        trackMetadata.composer.forEach((composer) => {
-                            flacComments.push('COMPOSER=' + composer);
-                        });
-
-                        trackMetadata.publisher.forEach((publisher) => {
-                            flacComments.push('ORGANIZATION=' + publisher);
-                        });
-
-                        trackMetadata.producer.forEach((producer) => {
-                            flacComments.push('PRODUCER=' + producer);
-                        });
-
-                        trackMetadata.engineer.forEach((engineer) => {
-                            flacComments.push('ENGINEER=' + engineer);
-                        });
-
-                        trackMetadata.writer.forEach((writer) => {
-                            flacComments.push('WRITER=' + writer);
-                        });
-
-                        trackMetadata.author.forEach((author) => {
-                            flacComments.push('AUTHOR=' + author);
-                        });
-
-                        trackMetadata.mixer.forEach((mixer) => {
-                            flacComments.push('MIXER=' + mixer);
-                        });
-
-                        if (trackMetadata.unsynchronisedLyrics) {
-                            flacComments.push('LYRICS=' + trackMetadata.unsynchronisedLyrics);
-                        }
-
-                        if (0 < parseInt(trackMetadata.releaseYear)) {
-                            flacComments.push('YEAR=' + trackMetadata.releaseYear);
-                        }
-
-                        if (0 < parseInt(trackMetadata.releaseDate)) {
-                            flacComments.push('DATE=' + trackMetadata.releaseDate);
-                        }
-
-                        if (0 < parseInt(trackMetadata.bpm)) {
-                            flacComments.push('BPM=' + trackMetadata.bpm);
-                        }
-
-                        const reader = new stream.PassThrough();
-                        reader.end(decryptedTrackBuffer);
-
-                        ensureDir(saveFilePath);
-
-                        const writer = fs.createWriteStream(saveFilePath);
-                        let processor = new flacMetadata.Processor({parseMetaDataBlocks: true});
-                        let vendor = 'reference libFLAC 1.2.1 20070917';
-                        let coverBuffer;
-
-                        if (albumCoverSavePath && fs.existsSync(albumCoverSavePath)) {
-                            coverBuffer = fs.readFileSync(albumCoverSavePath);
-                        }
-
-                        let mdbVorbisComment;
-                        let mdbVorbisPicture;
-
-                        processor.on('preprocess', (mdb) => {
-                            // Remove existing VORBIS_COMMENT and PICTURE blocks, if any.
-                            if (flacMetadata.Processor.MDB_TYPE_VORBIS_COMMENT === mdb.type) {
-                                mdb.remove();
-                            } else if (coverBuffer && flacMetadata.Processor.MDB_TYPE_PICTURE === mdb.type) {
-                                mdb.remove();
-                            }
-
-                            if (mdb.isLast) {
-                                mdbVorbisComment = flacMetadata.data.MetaDataBlockVorbisComment.create(!coverBuffer, vendor, flacComments);
-
-                                if (coverBuffer) {
-                                    mdbVorbisPicture = flacMetadata.data.MetaDataBlockPicture.create(true, 3, 'image/jpeg', '', 1400, 1400, 24, 0, coverBuffer);
-                                }
-
-                                mdb.isLast = false;
-                            }
-                        });
-
-                        processor.on('postprocess', (mdb) => {
-                            if (flacMetadata.Processor.MDB_TYPE_VORBIS_COMMENT === mdb.type && null !== mdb.vendor) {
-                                vendor = mdb.vendor;
-                            }
-
-                            if (mdbVorbisComment) {
-                                processor.push(mdbVorbisComment.publish());
-                            }
-
-                            if (mdbVorbisPicture) {
-                                processor.push(mdbVorbisPicture.publish());
-                            }
-                        });
-
-                        reader.on('end', () => {
-                            resolve();
-                        });
-
-                        reader.pipe(processor).pipe(writer);
-                    }
-                }
-            } catch (err) {
-
-                if (10 > numberRetry) {
-                    numberRetry += 1;
-
-                    setTimeout(() => {
-                        addTrackTags(decryptedTrackBuffer, trackInfos, saveFilePath, numberRetry).then(() => {
-                            resolve();
-                        }).catch(() => {
-                            reject();
-                        });
-                    }, 500);
-                } else {
-                    ensureDir(saveFilePath);
-                    fs.writeFileSync(saveFilePath, decryptedTrackBuffer);
-
-                    reject();
-                }
-            }
-        }
     });
 }
+
+//Okay now put some expressJS shit in here.
