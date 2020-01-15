@@ -16,7 +16,6 @@ const commandLineUsage = require('command-line-usage');
 const openUrl = require('openurl');
 const packageJson = require('./package.json');
 const winston = require('winston');
-
 const configFile = 'SMLoadrConfig.json';
 const ConfigService = require('./src/service/ConfigService');
 let configService = new ConfigService(configFile);
@@ -180,17 +179,17 @@ function initRequest() {
     });
 
     // App info
-    console.log(chalk.cyan('╔══════════════════════════════════════════════════════════════════╗'));
-    console.log(chalk.cyan('║') + chalk.bold.yellow('                          SMLoadr v' + packageJson.version + '                         ') + chalk.cyan('║'));
+    console.log(chalk.cyan('╔═══════╗'));
+
+    console.log(chalk.yellow(' STRIDGE'));
+    console.log(chalk.cyan('╠═══════╝'));
+
+    console.log(chalk.cyan('╠══════════════════════════════════════════════════════════════════╗'));
+    console.log(chalk.cyan('║') + chalk.bold.yellow('                    Based on SMLoadr v' + packageJson.version + '                      ') + chalk.cyan('║'));
     console.log(chalk.cyan('╠══════════════════════════════════════════════════════════════════╣'));
     console.log(chalk.cyan('║') + ' GIT:      https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr            ' + chalk.cyan('║'));
     console.log(chalk.cyan('╚══════════════════════════════════════════════════════════════════╝'));
 
-
-    if (!fs.existsSync(DOWNLOAD_LINKS_FILE)) {
-        ensureDir(DOWNLOAD_LINKS_FILE);
-        fs.writeFileSync(DOWNLOAD_LINKS_FILE, '');
-    }
 
 	nodePath.normalize(DOWNLOAD_DIR).replace(/\/$|\\$/, '');
     nodePath.normalize(PLAYLIST_DIR).replace(/\/$|\\$/, '');
@@ -588,10 +587,6 @@ function startDownload(deezerUrl, downloadFromFile = false) {
             return downloadMultiple(deezerUrlParts.type, deezerUrlParts.id).then(() => {
                 downloadStateInstance.finish(!downloadFromFile);
             });
-        case 'artist':
-            return downloadArtist(deezerUrlParts.id).then(() => {
-                downloadStateInstance.finish(!downloadFromFile);
-            });
         case 'track':
             downloadStateInstance.updateNumberTracksToDownload(1);
 
@@ -615,113 +610,6 @@ function getDeezerUrlParts(deezerUrl) {
         type: urlParts[1],
         id: urlParts[2]
     };
-}
-
-/**
- * Download all tracks of an artists.
- *
- * @param {Number} id
- */
-function downloadArtist(id) {
-    return new Promise((resolve, reject) => {
-        let requestParams = {
-            method: 'POST',
-            url: unofficialApiUrl,
-            qs: Object.assign(unofficialApiQueries, {
-                method: 'artist.getData',
-                cid: getApiCid()
-            }),
-            body: {
-                art_id: id,
-                filter_role_id: [0],
-                lang: 'us',
-                tab: 0,
-                nb: -1,
-                start: 0
-            },
-            json: true,
-            jar: true
-        };
-
-        requestWithCache(requestParams).then((response) => {
-            if (!response || 0 < Object.keys(response.error).length) {
-                if (response.error.VALID_TOKEN_REQUIRED) {
-                    initDeezerApi();
-
-                    setTimeout(() => {
-                        downloadArtist(id).then(() => {
-                            resolve();
-                        }).catch((err) => {
-                            reject(err);
-                        });
-                    }, 1000);
-                } else {
-                    throw 'Could not fetch the artist!';
-                }
-            } else {
-
-                const artistName = response.results.ART_NAME;
-                downloadStateInstance.setDownloadTypeName(artistName);
-
-                requestParams.qs.method = 'album.getDiscography';
-                requestParams.qs.cid = getApiCid();
-                requestParams.body = {
-                    art_id: id,
-                    filter_role_id: [0],
-                    lang: 'us',
-                    nb: 500,
-                    nb_songs: -1,
-                    start: 0
-                };
-
-                requestWithoutCache(requestParams).then((response) => {
-                    if (!response || 0 < Object.keys(response.error).length) {
-                        if (response.error.VALID_TOKEN_REQUIRED) {
-                            initDeezerApi();
-
-                            setTimeout(() => {
-                                downloadArtist(id).then(() => {
-                                    resolve();
-                                }).catch((err) => {
-                                    reject(err);
-                                });
-                            }, 1000);
-                        } else {
-                            throw 'Could not fetch "' + artistName + '" albums!';
-                        }
-                    } else {
-
-                        if (0 < response.results.data.length) {
-                            let trackList = [];
-                            let albumList = {};
-
-                            response.results.data.forEach((album) => {
-                                albumList[album.ALB_ID] = album;
-
-                                album.SONGS.data.forEach((track) => {
-                                    trackList.push(track);
-                                });
-                            });
-
-                            downloadStateInstance.updateNumberTracksToDownload(trackList.length);
-
-                            trackListDownload(trackList, albumList).then(() => {
-                                resolve();
-                            });
-                        } else {
-                            downloadSpinner.warn('No tracks to download for artist "' + artistName + '"');
-
-                            resolve();
-                        }
-                    }
-                }).catch((err) => {
-                    reject(err);
-                });
-            }
-        }).catch((err) => {
-            reject(err);
-        });
-    });
 }
 
 /**
