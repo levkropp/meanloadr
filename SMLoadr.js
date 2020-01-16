@@ -118,7 +118,6 @@ let requestWithoutCache;
 let requestWithoutCacheAndRetry;
 let requestWithCache;
 
-function initRequest() {
     httpHeaders = {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36',
         'cache-control': 'max-age=0',
@@ -127,6 +126,9 @@ function initRequest() {
         'content-type': 'text/plain;charset=UTF-8',
         'cookie': 'arl=4db7f3d6fb19d059c4eb76ab0f27073e995e15d8993c3e15a2cbb1f676b665f4a9e40d4f1d1b0fd620614035e1ee238e2bba596119ee5c8cc01c6b40fb6349a8aee1cfb66a5f5c0c59ac15d89067d3e0366505478575b0dd8dae9df9a47c3deb' 
     };
+
+function initRequest() {
+
 
     let requestConfig = {
         retry: {
@@ -168,7 +170,7 @@ function initRequest() {
 /**
  * Application init.
  */
-function initApp() {
+function initApp(_callback) {
     process.on('unhandledRejection', (reason, p) => {
         console.error('\n' + reason + '\nUnhandled Rejection at Promise' + JSON.stringify(p) + '\n');
     });
@@ -194,22 +196,7 @@ function initApp() {
 	nodePath.normalize(DOWNLOAD_DIR).replace(/\/$|\\$/, '');
     nodePath.normalize(PLAYLIST_DIR).replace(/\/$|\\$/, '');
 
-    if (isCli) {
-        try {
-            cliOptions = commandLineArgs(cliOptionDefinitions);
-        } catch (err) {
-            downloadSpinner.fail(err.message);
-            process.exit(1);
-        }
-    }
-
-    startApp();
-};
-
-/**
- * Start the app.
- */
-function startApp() {
+    //StartApp
     initRequest();
 
         downloadSpinner.text = 'Initiating Deezer API...';
@@ -218,7 +205,9 @@ function startApp() {
         initDeezerApi().then(() => {
             downloadSpinner.succeed('Connected to Deezer API');
             selectedMusicQuality = musicQualities.MP3_320;
-            askForNewDownload();
+
+            _callback();
+
         }).catch((err) => {
             if ('Wrong Deezer credentials!' === err) {
                 downloadSpinner.fail('Wrong Deezer credentials!');
@@ -230,7 +219,9 @@ function startApp() {
                 downloadSpinner.fail(err);
             }
         });
-}
+
+
+};
 
 /**
  * Create directories of the given path if they don't exist.
@@ -1521,4 +1512,115 @@ function addTrackTags(decryptedTrackBuffer, trackInfos, saveFilePath, numberRetr
     });
 }
 
+
+
 //Okay now put some expressJS shit in here.
+// server.js
+
+    // set up ========================
+    var express  = require('express');
+    var app      = express();                               // create our app w/ express
+    var mongoose = require('mongoose');                     // mongoose for mongodb
+    var morgan = require('morgan');             // log requests to the console (express4)
+    var bodyParser = require('body-parser');    // pull information from HTML POST (express4)
+    var methodOverride = require('method-override'); // simulate DELETE and PUT (express4)
+
+    // configuration =================
+
+    mongoose.connect('mongodb+srv://lev:kropp@meancluster-dq7u8.mongodb.net/test?retryWrites=true&w=majority', {useUnifiedTopology: true, useNewUrlParser: true});     // connect to mongoDB database
+
+    app.use(express.static(__dirname + '/public'));                 // set the static files location /public/img will be /img for users
+    app.use(morgan('dev'));                                         // log every request to the console
+    app.use(bodyParser.urlencoded({'extended':'true'}));            // parse application/x-www-form-urlencoded
+    app.use(bodyParser.json());                                     // parse application/json
+    app.use(bodyParser.json({ type: 'application/vnd.api+json' })); // parse application/vnd.api+json as json
+    app.use(methodOverride());
+
+
+    // define model ===============
+
+    var Todo = mongoose.model('Todo', {
+        text: String
+    })
+
+    var Mp3File = mongoose.model('Mp3File', {
+        trackBuffer: Buffer
+    })
+
+
+
+
+// routes ======================================================================
+
+    // api ---------------------------------------------------------------------
+    // get all todos
+    app.get('/api/todos', (req, res) => {
+
+        // use mongoose to get all todos in the database
+        Todo.find((err, todos) => {
+
+            // if there is an error retrieving, send the error. nothing after res.send(err) will execute
+            if (err)
+                res.send(err)
+
+            res.json(todos); // return all todos in JSON format
+        });
+    });
+
+    // create todo and send back all todos after creation
+    app.post('/api/todos', (req, res) => {
+
+        // create a todo, information comes from AJAX request from Angular
+        Todo.create({
+            text : req.body.text,
+            done : false
+        }, (err, todo) => {
+            if (err)
+                res.send(err);
+
+            // get and return all the todos after you create another
+            Todo.find((err, todos) => {
+                if (err)
+                    res.send(err)
+                res.json(todos);
+            });
+        });
+
+    });
+    //when we receive an arl cookie
+    app.post('/api/arl', (req,res) => {
+
+        httpHeaders.arl="arl="+req.body.arl
+        initApp(() => {
+            res.send("Success!")
+        });
+
+    })
+
+
+    // delete a todo
+    app.delete('/api/todos/:todo_id', (req, res) => {
+        Todo.remove({
+            _id : req.params.todo_id
+        }, (err, todo) => {
+            if (err)
+                res.send(err);
+
+            // get and return all the todos after you create another
+            Todo.find((err, todos) => {
+                if (err)
+                    res.send(err)
+                res.json(todos);
+            });
+        });
+    });
+
+    // application -------------------------------------------------------------
+    app.get('*', (req, res) => {
+        res.sendfile('./public/index.html'); // load the single view file (angular will handle the page changes on the front-end)
+    });
+
+    // listen (start app with node server.js) ======================================
+    app.listen(8080);
+    console.log("App listening on port 8080");
+
