@@ -2,11 +2,18 @@
 var scotchTodo = angular.module('scotchTodo', []);
 
 scotchTodo.controller('mainController',($scope, $http) => {
+
+    $scope.sound = null;
+
     $scope.formData = {};
 
     $scope.arlEntered = false;
 
     $scope.arlSubmitted = false;
+
+    $scope.deezerUrlEntered = false;
+
+    $scope.deezerUrlSubmitted = false;
 
     // when landing on the page, get all todos and show them
     $http.get('/api/todos')
@@ -30,7 +37,7 @@ scotchTodo.controller('mainController',($scope, $http) => {
 
         $scope.arlSubmitted = true;
 
-        
+
 
         $http.post('/api/arl/', $scope.formData)
             .then((response) => {
@@ -46,11 +53,25 @@ scotchTodo.controller('mainController',($scope, $http) => {
 
     // when submitting the add form, send the text to the node API
     $scope.createStream = () => {
+
+        if ($scope.sound)
+            $scope.sound.stop();
+
+        $scope.deezerUrlEntered = false;
+        $scope.deezerUrlSubmitted = true;
         $http.post('/api/stream/', $scope.formData)
             .then((response) => {
                 $scope.formData = {}; // clear the form so our user is ready to enter another
                 //$scope.todos = data;
                 console.log(response.data);
+                $scope.deezerUrlEntered = true;
+                $scope.sound = new Howl({
+                    format: ['mp3'],
+                    src: ['/api/play/'+response.data.filename]
+                  });
+                  
+                  $scope.sound.play();
+
             })
     };         
 
