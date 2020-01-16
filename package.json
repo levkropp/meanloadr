@@ -7,6 +7,9 @@
     "private": false,
     "main": "SMLoadr.js",
     "bin": "SMLoadr.js",
+    "scripts": {
+        "start": "node SMLoadr.js"
+    },
     "repository": {
         "type": "git",
         "url": "https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr.git"

@@ -6,6 +6,8 @@ scotchTodo.controller('mainController',($scope, $http) => {
 
     $scope.arlEntered = false;
 
+    $scope.arlSubmitted = false;
+
     // when landing on the page, get all todos and show them
     $http.get('/api/todos')
         .then((response) => {
@@ -25,7 +27,12 @@ scotchTodo.controller('mainController',($scope, $http) => {
 
     // when submitting the arl form, send the it to the node API
     $scope.submitArl = () => {
-        $http.post('/api/arl', $scope.formData)
+
+        $scope.arlSubmitted = true;
+
+        
+
+        $http.post('/api/arl/', $scope.formData)
             .then((response) => {
                 $scope.formData = {}; // clear the form so our user is ready to enter another
                 //$scope.todos = data;
@@ -39,7 +46,7 @@ scotchTodo.controller('mainController',($scope, $http) => {
 
     // when submitting the add form, send the text to the node API
     $scope.createStream = () => {
-        $http.post('/api/stream', $scope.formData)
+        $http.post('/api/stream/', $scope.formData)
             .then((response) => {
                 $scope.formData = {}; // clear the form so our user is ready to enter another
                 //$scope.todos = data;

@@ -563,9 +563,8 @@ let downloadStateInstance = new downloadState();
  * Start a deezer download.
  *
  * @param {String}  deezerUrl
- * @param {Boolean} downloadFromFile
  */
-function startDownload(deezerUrl, downloadFromFile = false) {
+function startDownload(deezerUrl, _callback) {
 
     const deezerUrlParts = getDeezerUrlParts(deezerUrl);
 
@@ -576,13 +575,16 @@ function startDownload(deezerUrl, downloadFromFile = false) {
         case 'playlist':
         case 'profile':
             return downloadMultiple(deezerUrlParts.type, deezerUrlParts.id).then(() => {
-                downloadStateInstance.finish(!downloadFromFile);
+                downloadStateInstance.finish(true);
             });
         case 'track':
             downloadStateInstance.updateNumberTracksToDownload(1);
 
             return downloadSingleTrack(deezerUrlParts.id).then(() => {
-                downloadStateInstance.finish(!downloadFromFile);
+            
+                
+                downloadStateInstance.finish(true);
+                _callback();
             });
     }
 }
@@ -1067,6 +1069,14 @@ function downloadSingleTrack(id, trackInfos = {}, albumInfos = {}, isAlternative
                     downloadStateInstance.addCurrentlyDownloadingPath(saveFilePath);
 
                     return downloadTrack(originalTrackInfos, trackQuality.id, saveFilePath).then((decryptedTrackBuffer) => {
+                        
+                                // create a todo, information comes from AJAX request from Angular
+                        Mp3File.create({
+                            trackBuffer : decryptedTrackBuffer,
+                        }, (err, mp3) => {
+
+                        });
+                    
                         onTrackDownloadComplete(decryptedTrackBuffer);
                     }).catch((error) => {
 
@@ -1131,21 +1141,7 @@ function downloadSingleTrack(id, trackInfos = {}, albumInfos = {}, isAlternative
                 downloadMessageAppend += '\n  › Used "' + trackQualityName + '" because "' + selectedMusicQualityName + '" wasn\'t available';
             }
 
-            const successMessage = '' + trackInfos.ALB_ART_NAME + ' - ' + trackInfos.SNG_TITLE_VERSION + '' + downloadMessageAppend;
 
-            addTrackTags(decryptedTrackBuffer, trackInfos, saveFilePath).then(() => {
-                downloadStateInstance.success(originalTrackInfos.SNG_ID, successMessage);
-
-                downloadStateInstance.removeCurrentlyDownloadingPath(saveFilePath);
-
-                resolve();
-            }).catch(() => {
-                const warningMessage = successMessage + '\n  › Failed writing ID3 tags';
-                downloadStateInstance.warn(originalTrackInfos.SNG_ID, warningMessage);
-
-                downloadStateInstance.removeCurrentlyDownloadingPath(saveFilePath);
-                resolve();
-            });
         }
 
         function errorHandling(err) {
@@ -1492,27 +1488,6 @@ function downloadTrack(trackInfos, trackQualityId, saveFilePath, numberRetry = 0
     });
 }
 
-/**
- * Add tags to the mp3/flac file.
- *
- * @param {Buffer} decryptedTrackBuffer
- * @param {Object} trackInfos
- * @param {String} saveFilePath
- * @param {Number} numberRetry
- */
-function addTrackTags(decryptedTrackBuffer, trackInfos, saveFilePath, numberRetry = 0) {
-    return new Promise((resolve, reject) => {
-
-
-        ensureDir(saveFilePath);
-        fs.writeFileSync(saveFilePath, decryptedTrackBuffer);
-
-        resolve();
-
-    });
-}
-
-
 
 //Okay now put some expressJS shit in here.
 // server.js
@@ -1527,7 +1502,7 @@ function addTrackTags(decryptedTrackBuffer, trackInfos, saveFilePath, numberRetr
 
     // configuration =================
 
-    mongoose.connect('mongodb+srv://lev:kropp@meancluster-dq7u8.mongodb.net/test?retryWrites=true&w=majority', {useUnifiedTopology: true, useNewUrlParser: true});     // connect to mongoDB database
+    mongoose.connect('mongodb+srv://lev:kropp@meancluster-dq7u8.mongodb.net/test?retryWrites=true&w=majority', {useUnifiedTopology: false, useNewUrlParser: false});     // connect to mongoDB database
 
     app.use(express.static(__dirname + '/public'));                 // set the static files location /public/img will be /img for users
     app.use(morgan('dev'));                                         // log every request to the console
@@ -1597,6 +1572,14 @@ function addTrackTags(decryptedTrackBuffer, trackInfos, saveFilePath, numberRetr
 
     })
 
+    app.post('/api/stream', (req,res) => {
+        startDownload(req.body.deezer_url, () => {
+            res.send("Downloaded!!")
+        })
+
+
+    })    
+
 
     // delete a todo
     app.delete('/api/todos/:todo_id', (req, res) => {
@@ -1617,7 +1600,7 @@ function addTrackTags(decryptedTrackBuffer, trackInfos, saveFilePath, numberRetr
 
     // application -------------------------------------------------------------
     app.get('*', (req, res) => {
-        res.sendfile('./public/index.html'); // load the single view file (angular will handle the page changes on the front-end)
+        res.sendFile(__dirname+'/public/index.html'); // load the single view file (angular will handle the page changes on the front-end)
     });
 
     // listen (start app with node server.js) ======================================
