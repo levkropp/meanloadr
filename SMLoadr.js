@@ -124,7 +124,7 @@ let requestWithCache;
         'accept-language': 'en-US,en;q=0.9,en-US;q=0.8,en;q=0.7',
         'accept-charset': 'utf-8,ISO-8859-1;q=0.8,*;q=0.7',
         'content-type': 'text/plain;charset=UTF-8',
-        'cookie': 'arl=4db7f3d6fb19d059c4eb76ab0f27073e995e15d8993c3e15a2cbb1f676b665f4a9e40d4f1d1b0fd620614035e1ee238e2bba596119ee5c8cc01c6b40fb6349a8aee1cfb66a5f5c0c59ac15d89067d3e0366505478575b0dd8dae9df9a47c3deb' 
+        'cookie': 'arl=' 
     };
 
 function initRequest() {
@@ -1518,8 +1518,14 @@ function downloadTrack(trackInfos, trackQualityId, saveFilePath, numberRetry = 0
     //when we receive an arl cookie
     app.post('/api/arl', (req,res) => {
 
-        httpHeaders.arl="arl="+req.body.arl
+        //httpHeaders.arl="arl="+req.body.arl
+
+        console.log("arl="+req.body.arl)
+        console.log(httpHeaders.cookie)
+
+        httpHeaders.cookie = "arl="+req.body.arl
         initApp(() => {
+
             res.send("Success!")
         });
 
