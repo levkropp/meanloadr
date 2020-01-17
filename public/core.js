@@ -42,6 +42,10 @@ scotchTodo.controller('mainController',($scope, $http) => {
     // when submitting the arl form, send the it to the node API
     $scope.submitArl = () => {
 
+
+        if ($scope.formData.arl.length != 192)
+            return
+
         $scope.arlSubmitted = true;
 
 
@@ -87,9 +91,9 @@ scotchTodo.controller('mainController',($scope, $http) => {
                             document.getElementById("seekWrapper").innerHTML += '<input type="range" id="seek" value="0" min="0" max='+Math.floor($scope.sound.duration())+' />'
                         
 
-                            document.getElementById("seek").addEventListener('change', () => {
-                                $scope.sound.seek(document.getElementById("seek").value)
-                            })
+                        document.getElementById("seek").addEventListener('change', () => {
+                            $scope.sound.seek(document.getElementById("seek").value)
+                        })
 
                         setInterval(() => {
                             
