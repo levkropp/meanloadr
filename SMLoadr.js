@@ -27,8 +27,7 @@ let DOWNLOAD_DIR = 'DOWNLOADS/';
 let PLAYLIST_DIR = 'PLAYLISTS/';
 let PLAYLIST_FILE_ITEMS = {};
 
-let DOWNLOAD_LINKS_FILE = 'downloadLinks.txt';
-let DOWNLOAD_MODE = 'single';
+
 
 const musicQualities = {
     MP3_128: {
@@ -54,44 +53,7 @@ const musicQualities = {
 
 let selectedMusicQuality = musicQualities.MP3_320;
 
-const cliOptionDefinitions = [
-    {
-        name: 'help',
-        alias: 'h',
-        description: 'Print this usage guide :)'
-    },
-    {
-        name: 'quality',
-        alias: 'q',
-        type: String,
-        defaultValue: 'MP3_320',
-        description: 'The quality of the files to download: MP3_128/MP3_320/FLAC'
-    },
-    {
-        name:         'path',
-        alias:        'p',
-        type:         String,
-        defaultValue: DOWNLOAD_DIR,
-        description:  'The path to download the files to: path with / in the end'
-    },
-    {
-        name: 'url',
-        alias: 'u',
-        type: String,
-        defaultOption: true,
-        description: 'Downloads single deezer url: album/artist/playlist/profile/track url'
-    },
-    {
-        name: 'downloadmode',
-        alias: 'd',
-        type: String,
-        defaultValue: 'single',
-        description: 'Downloads multiple urls from list: "all" for downloadLinks.txt'
-    }
-];
 
-let cliOptions;
-const isCli = process.argv.length > 2;
 
 const downloadSpinner = new ora({
     spinner: {
@@ -105,7 +67,6 @@ const downloadSpinner = new ora({
 });
 
 const unofficialApiUrl = 'https://www.deezer.com/ajax/gw-light.php';
-const ajaxActionUrl = 'https://www.deezer.com/ajax/action.php';
 
 let unofficialApiQueries = {
     api_version: '1.0',
@@ -304,71 +265,7 @@ function initDeezerApi() {
 function getApiCid() {
     return Math.floor(1e9 * Math.random());
 }
-/**
- * Remove the first line from the given file.
- *
- * @param {String} filePath
- */
-function removeFirstLineFromFile(filePath) {
-    const lines = fs
-        .readFileSync(filePath, 'utf-8')
-        .split(/^(.*)[\r|\n]/)
-        .filter(Boolean);
 
-    let contentToWrite = '';
-
-    if (lines[1]) {
-        contentToWrite = lines[1].trim();
-    }
-
-    fs.writeFileSync(filePath, contentToWrite);
-}
-
-/**
- * Ask for a album, playlist or track link to start the download.
- */
-function askForNewDownload() {
-    console.log('\n');
-
-    let questions = [
-        {
-            type: 'input',
-            name: 'deezerUrl',
-            prefix: '♫',
-            message: 'Deezer URL:',
-            validate: (deezerUrl) => {
-                if (deezerUrl) {
-                    let deezerUrlType = getDeezerUrlParts(deezerUrl).type;
-                    let allowedDeezerUrlTypes = [
-                        'album',
-                        'artist',
-                        'playlist',
-                        'profile',
-                        'track'
-                    ];
-
-                    if (allowedDeezerUrlTypes.includes(deezerUrlType)) {
-                        return true;
-                    }
-                }
-
-                return 'Deezer URL example: https://www.deezer.com/album|artist|playlist|profile|track/0123456789';
-            }
-        }
-    ];
-
-    inquirer.prompt(questions).then(answers => {
-        downloadSpinner.warn(chalk.yellow('Do not scroll while downloading! This will mess up the UI!'));
-
-        startDownload(answers.deezerUrl).then(() => {
-            askForNewDownload();
-        }).catch((err) => {
-            downloadSpinner.fail(err);
-            downloadStateInstance.finish();
-            askForNewDownload();
-        });
-    });
-}
 
 /**
  * Remove empty files.
@@ -1333,16 +1230,6 @@ function getAlbumInfosOfficialApi(id) {
             reject({statusCode: 404});
         });
     });
-}
-/**
- * Capitalizes the first letter of a string
- *
- * @param {String} string
- *
- * @returns {String}
- */
-function capitalizeFirstLetter(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 /**
