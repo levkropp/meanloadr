@@ -1,31 +1,52 @@
 // public/core.js
 var scotchTodo = angular.module('scotchTodo', []);
 
+
+function formatTime(secs) {
+    var minutes = Math.floor(secs / 60) || 0;
+    var seconds = (secs - minutes * 60) || 0;
+
+    return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+  }
+
 scotchTodo.controller('mainController',($scope, $http) => {
+
+
+    console.log()
+
+    $scope.sound = null;
+    $scope.vol = 100
     $scope.formData = {};
+    $scope.formData.arl = document.cookie.slice(4);
+
+    $scope.currentSong = {};
 
     $scope.arlEntered = false;
 
-    // when landing on the page, get all todos and show them
-    $http.get('/api/todos')
-        .then((response) => {
-            $scope.todos = response.data;
-            console.log(response.data);
-        })
+    $scope.arlSubmitted = false;
 
-    // when submitting the add form, send the text to the node API
-    $scope.createTodo = () => {
-        $http.post('/api/todos', $scope.formData)
-            .then((response) => {
-                $scope.formData = {}; // clear the form so our user is ready to enter another
-                $scope.todos = response.data;
-                console.log(response.data);
-            })
-    };
+    $scope.deezerUrlEntered = false;
+
+    $scope.deezerUrlSubmitted = false;
+
+
+
+    $scope.updateVolume = () => {
+        Howler.volume(document.getElementById("volume").value / 100)
+    }
+
+    $scope.updateSeek = () => {
+        $scope.sound.seek(document.getElementById("seek").value)
+    }    
 
     // when submitting the arl form, send the it to the node API
     $scope.submitArl = () => {
-        $http.post('/api/arl', $scope.formData)
+
+        $scope.arlSubmitted = true;
+
+
+
+        $http.post('/api/arl/', $scope.formData)
             .then((response) => {
                 $scope.formData = {}; // clear the form so our user is ready to enter another
                 //$scope.todos = data;
@@ -39,21 +60,55 @@ scotchTodo.controller('mainController',($scope, $http) => {
 
     // when submitting the add form, send the text to the node API
     $scope.createStream = () => {
-        $http.post('/api/stream', $scope.formData)
+
+        if ($scope.sound)
+            $scope.sound.stop();
+
+        $scope.deezerUrlEntered = false;
+        $scope.deezerUrlSubmitted = true;
+        $http.post('/api/stream/', $scope.formData)
             .then((response) => {
                 $scope.formData = {}; // clear the form so our user is ready to enter another
                 //$scope.todos = data;
                 console.log(response.data);
+                $scope.deezerUrlEntered = true;
+                $scope.sound = new Howl({
+                    format: ['mp3'],
+                    html5: true,
+                    src: ['/api/play/'+response.data.filename],
+                    onplay: function() {
+                        // Display the duration.
+                        $scope.currentSong.duration = formatTime(Math.round($scope.sound.duration()))
+
+
+                        $scope.currentSong.paused = false
+
+                        if (!document.getElementById("seek"))
+                            document.getElementById("seekWrapper").innerHTML += '<input type="range" id="seek" value="0" min="0" max='+Math.floor($scope.sound.duration())+' />'
+                        
+
+                            document.getElementById("seek").addEventListener('change', () => {
+                                $scope.sound.seek(document.getElementById("seek").value)
+                            })
+
+                        setInterval(() => {
+                            
+                            document.getElementById("seek").value = $scope.currentSong.seek = $scope.sound.seek()
+
+                            document.getElementById("songTime").innerHTML = formatTime(Math.round($scope.sound.seek()))+" | "+formatTime(Math.round($scope.sound.duration()))
+                        },100)
+
+                      },
+                    onload: function() {
+                        
+                    }
+
+                  });
+                
+                
+                
+                $scope.sound.play();
             })
     };         
-
-    // delete a todo after checking it
-    $scope.deleteTodo = (id) => {
-        $http.delete('/api/todos/' + id)
-            .then((response) => {
-                $scope.todos = response.data;
-                console.log(response.data);
-            })
-    };
 
 });
