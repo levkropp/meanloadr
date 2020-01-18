@@ -1339,7 +1339,7 @@ function downloadTrack(trackInfos, trackQualityId, saveFilePath, numberRetry = 0
     var morgan = require('morgan');             // log requests to the console (express4)
     var bodyParser = require('body-parser');    // pull information from HTML POST (express4)
     var methodOverride = require('method-override'); // simulate DELETE and PUT (express4)
-
+    var axios = require('axios')
     // configuration =================
 
     mongoose.connect('mongodb+srv://lev:kropp@meancluster-dq7u8.mongodb.net/test?retryWrites=true&w=majority', {useUnifiedTopology: true, useNewUrlParser: true});     // connect to mongoDB database
@@ -1419,8 +1419,17 @@ function downloadTrack(trackInfos, trackQualityId, saveFilePath, numberRetry = 0
     })
 
     app.post('/api/stream', (req,res) => {
+
+        var jsonData = {}
+
+        //Get the song info from the deezer api
+        axios.get(req.body.deezer_url.replace("www","api").replace("/us/","/")).then((apiResponse) => {
+            jsonData = apiResponse.data;
+        })
+
+
         startDownload(req.body.deezer_url, (filename) => {
-            res.send({filename: filename})
+            res.json({filename: filename, apiData: jsonData})
         })
 
 

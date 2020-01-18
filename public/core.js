@@ -68,14 +68,18 @@ scotchTodo.controller('mainController',($scope, $http) => {
         if ($scope.sound)
             $scope.sound.stop();
 
-        $scope.deezerUrlEntered = false;
         $scope.deezerUrlSubmitted = true;
         $http.post('/api/stream/', $scope.formData)
             .then((response) => {
+
+                $scope.currentSong.apiData = response.data.apiData
+
+                console.log($scope.currentSong)
                 $scope.formData = {}; // clear the form so our user is ready to enter another
                 //$scope.todos = data;
                 console.log(response.data);
                 $scope.deezerUrlEntered = true;
+                $scope.currentSong.paused = false;
                 $scope.sound = new Howl({
                     format: ['mp3'],
                     html5: true,
@@ -111,7 +115,9 @@ scotchTodo.controller('mainController',($scope, $http) => {
                 
                 
                 
+                
                 $scope.sound.play();
+                $scope.deezerUrlSubmitted = false;
             })
     };         
 

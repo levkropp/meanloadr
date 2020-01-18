@@ -30,13 +30,15 @@
 <!-- SET THE CONTROLLER AND GET ALL TODOS -->
 
 <body ng-app="scotchTodo" class='flex flex-col min-h-screen'> 
-  <div class="flex-1">
+  <div class="flex-1 bg-gray-1  00">
 
     <!-- HEADER AND TODO COUNT -->
     <div class="text-center">
       <h1 class="text-5xl">MEANLoadr</h1>
       <h4>Based on SMLoadr v1.20.0</h4>
+      <h5><a href="https://creativecommons.org/licenses/by-nc/4.0/legalcode">Licensed under CC-BY-NC-4.0</a></h5>
       <h6><a href="https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr">https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr</a></h6>
+      <p>The creators of SMLoadr do not support or endorse this product in any way. This product is given with no warranty.</p>
 
     </div>
 
@@ -47,7 +49,7 @@
           <div class="form-group">
 
             <!-- Arl cookie shown first -->
-            <input id="arlInput" type="text" class="bg-white focus:outline-none focus:shadow-outline border border-gray-300 m-auto rounded-lg my-2 py-2 px-4 block w-1/2 md:w-1/4 appearance-none leading-normal" placeholder="arl cookie"
+            <input id="arlInput" type="text" class="bg-white focus:outline-none focus:shadow-outline border border-gray-300 m-auto rounded-lg my-2 py-2 px-4 block w-3/4 md:w-1/4 appearance-none leading-normal" placeholder="arl cookie"
               ng-model="formData.arl">
           </div>
 
@@ -69,7 +71,7 @@
         <form>
           <div class="form-group">
             <!-- BIND THIS VALUE TO formData.text IN ANGULAR -->
-            <input type="text" class="bg-white focus:outline-none focus:shadow-outline border border-gray-300 m-auto rounded-lg my-2 py-2 px-4 block w-1/4 appearance-none leading-normal"
+            <input type="text" class="bg-white focus:outline-none focus:shadow-outline border border-gray-300 m-auto rounded-lg my-2 py-2 px-4 block w-3/4 md:w-1/4 appearance-none leading-normal"
               placeholder="https://www.deezer.com/us/track/1109737" ng-model="formData.deezer_url">
           </div>
 
@@ -77,11 +79,11 @@
           <button type="submit" class="bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded" ng-click="createStream()">Stream it in my
             browser</button>
           <!-- Preloader for streaming in my browser  -->
-          <div ng-if="deezerUrlSubmitted && !deezerUrlEntered">
+          <div ng-if="deezerUrlSubmitted">
             <p><i class="fa fa-circle-o-notch fa-spin fa-fw"></i> Downloading song...</p>
           </div>
           <br>
-          <p ng-if="deezerUrlEntered">Playing song!</p>
+          <!-- <p ng-if="deezerUrlEntered">Playing song!</p> -->
 
 
         </form>
@@ -90,26 +92,33 @@
 
   </div>
 
-  <footer class="">
-    <div id="playSong" ng-if="deezerUrlEntered" class="flex flex-row justify-around w-full md:w-1/2 m-auto my-2">
+  <footer class="bg-gray-800 text-white">
+
+
+    <div id="playSong" ng-if="deezerUrlEntered" class="flex text-center flex-col-reverse md:flex-row justify-around w-full md:w-1/2 m-auto my-2 border-gray-300">
       <!-- Volume slider  -->
 
 
-        <p class="flex-none" id="songTime"></p>
-        <p id="seekWrapper" class="flex-initial">
+        
+        <div id="seekWrapper" class="flex-initial">
+          <p class="" id="songTime"></p>
+        </div>
 
-        </p>
+        <div class="flex-initial flex-col text-center">
+          
+          <i ng-click="sound.play();currentSong.paused = false" ng-if="currentSong.paused" class="fa fa-play fa-2x" aria-hidden="true"></i>
+          <i ng-click="sound.pause(); currentSong.paused = true" ng-if="!currentSong.paused" class="fa fa-pause fa-2x" aria-hidden="true"></i>
+          <p>{{currentSong.apiData.title_short}}</p>
+          <p>{{currentSong.apiData.artist.name}}</p>
+  
+        </div>
 
-        <p class="flex-initial">Volume</p>
-        <p class="flex-initial">
+        <div class="flex-initial">
+          <p class="">Volume</p>
           <input ng-model="vol" ng-change="updateVolume()" type="range" id="volume" value="100" min="0"
             max="100" />
-        </p>
-        <div class="flex-initial">
-
-          <i ng-click="sound.play();currentSong.paused = false" ng-if="currentSong.paused" class="fa fa-play" aria-hidden="true"></i>
-          <i ng-click="sound.pause(); currentSong.paused = true" ng-if="!currentSong.paused" class="fa fa-pause" aria-hidden="true"></i>
         </div>
+
 
 
 
