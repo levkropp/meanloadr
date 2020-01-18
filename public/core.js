@@ -42,6 +42,10 @@ scotchTodo.controller('mainController',($scope, $http) => {
     // when submitting the arl form, send the it to the node API
     $scope.submitArl = () => {
 
+
+        if ($scope.formData.arl.length != 192)
+            return
+
         $scope.arlSubmitted = true;
 
 
@@ -64,14 +68,18 @@ scotchTodo.controller('mainController',($scope, $http) => {
         if ($scope.sound)
             $scope.sound.stop();
 
-        $scope.deezerUrlEntered = false;
         $scope.deezerUrlSubmitted = true;
         $http.post('/api/stream/', $scope.formData)
             .then((response) => {
+
+                $scope.currentSong.apiData = response.data.apiData
+
+                console.log($scope.currentSong)
                 $scope.formData = {}; // clear the form so our user is ready to enter another
                 //$scope.todos = data;
                 console.log(response.data);
                 $scope.deezerUrlEntered = true;
+                $scope.currentSong.paused = false;
                 $scope.sound = new Howl({
                     format: ['mp3'],
                     html5: true,
@@ -87,9 +95,9 @@ scotchTodo.controller('mainController',($scope, $http) => {
                             document.getElementById("seekWrapper").innerHTML += '<input type="range" id="seek" value="0" min="0" max='+Math.floor($scope.sound.duration())+' />'
                         
 
-                            document.getElementById("seek").addEventListener('change', () => {
-                                $scope.sound.seek(document.getElementById("seek").value)
-                            })
+                        document.getElementById("seek").addEventListener('change', () => {
+                            $scope.sound.seek(document.getElementById("seek").value)
+                        })
 
                         setInterval(() => {
                             
@@ -107,7 +115,9 @@ scotchTodo.controller('mainController',($scope, $http) => {
                 
                 
                 
+                
                 $scope.sound.play();
+                $scope.deezerUrlSubmitted = false;
             })
     };         
 
