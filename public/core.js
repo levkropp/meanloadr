@@ -1,5 +1,5 @@
 // public/core.js
-var scotchTodo = angular.module('scotchTodo', []);
+var meanLoadr = angular.module('meanLoadr', []);
 
 
 function formatTime(secs) {
@@ -9,10 +9,10 @@ function formatTime(secs) {
     return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
   }
 
-scotchTodo.controller('mainController',($scope, $http) => {
+meanLoadr.controller('mainController',($scope, $http) => {
 
 
-    console.log()
+    //console.log()
 
     $scope.sound = null;
     $scope.vol = 100
@@ -28,6 +28,8 @@ scotchTodo.controller('mainController',($scope, $http) => {
     $scope.deezerUrlEntered = false;
 
     $scope.deezerUrlSubmitted = false;
+
+    $scope.searchData = {}
 
 
 
@@ -80,6 +82,7 @@ scotchTodo.controller('mainController',($scope, $http) => {
                 console.log(response.data);
                 $scope.deezerUrlEntered = true;
                 $scope.currentSong.paused = false;
+                Howler.unload();
                 $scope.sound = new Howl({
                     format: ['mp3'],
                     html5: true,
@@ -119,6 +122,20 @@ scotchTodo.controller('mainController',($scope, $http) => {
                 $scope.sound.play();
                 $scope.deezerUrlSubmitted = false;
             })
-    };         
+    };
+    
+    
+    $scope.createSearch = (searchTerm) => {
+
+        $http.get('/api/search/'+searchTerm, {})
+            .then((response) => {
+                    console.log(response.data)
+                    $scope.searchData = response.data.data.slice(0,5)
+                    console.log( $scope.searchData)
+
+            })
+        
+    }
+
 
 });

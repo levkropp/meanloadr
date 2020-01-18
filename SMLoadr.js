@@ -1367,41 +1367,7 @@ function downloadTrack(trackInfos, trackQualityId, saveFilePath, numberRetry = 0
 
 // routes ======================================================================
 
-    // api ---------------------------------------------------------------------
-    // get all todos
-    app.get('/api/todos', (req, res) => {
 
-        // use mongoose to get all todos in the database
-        Todo.find((err, todos) => {
-
-            // if there is an error retrieving, send the error. nothing after res.send(err) will execute
-            if (err)
-                res.send(err)
-
-            res.json(todos); // return all todos in JSON format
-        });
-    });
-
-    // create todo and send back all todos after creation
-    app.post('/api/todos', (req, res) => {
-
-        // create a todo, information comes from AJAX request from Angular
-        Todo.create({
-            text : req.body.text,
-            done : false
-        }, (err, todo) => {
-            if (err)
-                res.send(err);
-
-            // get and return all the todos after you create another
-            Todo.find((err, todos) => {
-                if (err)
-                    res.send(err)
-                res.json(todos);
-            });
-        });
-
-    });
     //when we receive an arl cookie
     app.post('/api/arl', (req,res) => {
 
@@ -1441,23 +1407,17 @@ function downloadTrack(trackInfos, trackQualityId, saveFilePath, numberRetry = 0
         res.sendFile(file)
     })
 
+    app.get('/api/search/:term', (req,res) => {
+        
 
-    // delete a todo
-    app.delete('/api/todos/:todo_id', (req, res) => {
-        Todo.remove({
-            _id : req.params.todo_id
-        }, (err, todo) => {
-            if (err)
-                res.send(err);
+        axios.get("https://api.deezer.com/search?q=track:\""+req.params.term+"\"").then((response) => {
+            //console.log(response.data)
+            res.json(response.data)
+        })
 
-            // get and return all the todos after you create another
-            Todo.find((err, todos) => {
-                if (err)
-                    res.send(err)
-                res.json(todos);
-            });
-        });
-    });
+       
+    })
+
 
     // application -------------------------------------------------------------
     app.get('/', (req, res) => {

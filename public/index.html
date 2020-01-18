@@ -2,7 +2,7 @@
 <!doctype html>
 
 <!-- ASSIGN OUR ANGULAR MODULE -->
-<html ng-controller="mainController" ng-app="scotchTodo">
+<html ng-controller="mainController" ng-app="meanLoadr">
 
 <head>
   <!-- META -->
@@ -30,16 +30,19 @@
 <!-- SET THE CONTROLLER AND GET ALL TODOS -->
 
 <body ng-app="scotchTodo" class='flex flex-col min-h-screen'> 
-  <div class="flex-1 bg-gray-1  00">
+  <div class="flex-1 bg-gray-100">
 
     <!-- HEADER AND TODO COUNT -->
     <div class="text-center">
-      <h1 class="text-5xl">MEANLoadr</h1>
-      <h4>Based on SMLoadr v1.20.0</h4>
-      <h5><a href="https://creativecommons.org/licenses/by-nc/4.0/legalcode">Licensed under CC-BY-NC-4.0</a></h5>
-      <h6><a href="https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr">https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr</a></h6>
-      <p>The creators of SMLoadr do not support or endorse this product in any way. This product is given with no warranty.</p>
+      <h1 class="text-5xl font-bold">MEANLoadr</h1>
 
+      <div ng-if="!arlSubmitted">
+          <p class="text-blue-500">https://github.com/levkropp/meanloadr</p>
+          <h4 class="text-xl">Based on SMLoadr v1.20.0</h4>
+          <h6 class="text-blue-500"><a href="https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr">https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr</a></h6>
+          <p class="font-thin">The creators of SMLoadr do not support or endorse this product in any way. This product is given with no warranty.</p>
+          <h5 class="text-blue-500"><a href="https://creativecommons.org/licenses/by-nc/4.0/legalcode">Licensed under CC-BY-NC-4.0</a></h5>
+      </div>
     </div>
 
     <!-- FORM TO CREATE TODOS -->
@@ -54,7 +57,7 @@
           </div>
 
           <!-- createStream() will send the arl cookie and deezer url to smloadr -->
-          <button ng-if="!arlSubmitted" type="submit" class="bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded" ng-click="submitArl()">Submit
+          <button ng-if="!arlSubmitted" type="submit" class="bg-transparent hover:bg-blue-500 text-blue-500 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded" ng-click="submitArl()">Submit
             arl</button>
           <!-- Preloader for submitting arl -->
           <div ng-if="arlSubmitted">
@@ -72,30 +75,49 @@
           <div class="form-group">
             <!-- BIND THIS VALUE TO formData.text IN ANGULAR -->
             <input type="text" class="bg-white focus:outline-none focus:shadow-outline border border-gray-300 m-auto rounded-lg my-2 py-2 px-4 block w-3/4 md:w-1/4 appearance-none leading-normal"
-              placeholder="https://www.deezer.com/us/track/1109737" ng-model="formData.deezer_url">
+              placeholder="Enter search term" ng-model="formData.searchTerm">
           </div>
 
           <!-- createStream() will send the arl cookie and deezer url to smloadr -->
-          <button type="submit" class="bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded" ng-click="createStream()">Stream it in my
-            browser</button>
+          <button type="submit" class="bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded" ng-click="createSearch(formData.searchTerm)">Search</button>
           <!-- Preloader for streaming in my browser  -->
-          <div ng-if="deezerUrlSubmitted">
-            <p><i class="fa fa-circle-o-notch fa-spin fa-fw"></i> Downloading song...</p>
-          </div>
+
           <br>
           <!-- <p ng-if="deezerUrlEntered">Playing song!</p> -->
 
 
         </form>
+
+        <div ng-if="deezerUrlSubmitted">
+            <p><i class="fa fa-circle-o-notch fa-spin fa-fw"></i> Downloading song...</p>
+          </div>
+
+        <div class="flex flex-col m-auto text-left bg-gray-600">
+          
+          <div class="flex justify-around flex-row align-middle px-2 hover:bg-gray-200 m-auto min-w-m max-w-xl" id="searchResults" ng-repeat="search in searchData">
+
+            <div ng-click="formData.deezer_url=search.link;createStream();">
+                <img class="px-4" src={{search.album.cover_small}} alt="">
+                <p class=""> {{search.title}} </p>
+                <p class=""> {{search.artist.name}} </p>
+            </div>
+
+              
+          </div>
+
+        </div>
+
+
+
       </div>
     </div>
 
   </div>
 
-  <footer class="bg-gray-800 text-white">
+  <footer class="bg-gray-900 text-white">
 
 
-    <div id="playSong" ng-if="deezerUrlEntered" class="flex text-center flex-col-reverse md:flex-row justify-around w-full md:w-1/2 m-auto my-2 border-gray-300">
+    <div id="playSong" ng-if="arlEntered" class="flex text-center flex-col-reverse md:flex-row justify-around w-full md:w-1/2 m-auto my-2 border-gray-300">
       <!-- Volume slider  -->
 
 
@@ -106,8 +128,14 @@
 
         <div class="flex-initial flex-col text-center">
           
-          <i ng-click="sound.play();currentSong.paused = false" ng-if="currentSong.paused" class="fa fa-play fa-2x" aria-hidden="true"></i>
-          <i ng-click="sound.pause(); currentSong.paused = true" ng-if="!currentSong.paused" class="fa fa-pause fa-2x" aria-hidden="true"></i>
+          <div class="flex-row justify-between">
+              <i class="fa fa-step-backward fa-2x px-4" aria-hidden="true"></i>
+              <i ng-click="sound.play();currentSong.paused = false" ng-if="currentSong.paused" class="fa fa-play fa-2x" aria-hidden="true"></i>
+              <i ng-click="sound.pause(); currentSong.paused = true" ng-if="!currentSong.paused" class="fa fa-pause fa-2x" aria-hidden="true"></i>
+              <i class="fa fa-step-forward fa-2x px-4" aria-hidden="true"></i>
+          </div>
+
+
           <p>{{currentSong.apiData.title_short}}</p>
           <p>{{currentSong.apiData.artist.name}}</p>
   
