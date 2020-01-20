@@ -1,14 +1,5 @@
-#SMLoadr
-> A streaming music downloader.
-SMLoadr is a program for downloading music from streaming music services.
-
-It is intended for educational and private use only, and not as a tool for pirating and distributing music!
-
-Remember that the artists and studios put a lot of work into making music - purchase music to support them.
-
-![Screenshot](screenshot1.png)
-
-![Screenshot](screenshot2.png)
+#MEANLoadr
+> A streaming application powered by SMLoadr and Howler
 
 ## Features
 
@@ -20,47 +11,18 @@ Remember that the artists and studios put a lot of work into making music - purc
 - Download a list of links from "downloadLinks.txt"
 - CLI support
 
+## How to use
 
-## Supported platforms
-
-- Windows x64
-- Windows x86
-- Linux x64
-- Linux x86
-- MacOS x64
-- Android (Run from source, see guide below)
-- ARM like Raspberry Pi (Run from source)
-
-## How to use, run and compile
-
-Guide on the [Wiki](https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr/wiki/How-to-use%2C-run-and-compile)
-
-## How to login with arl cookie
-
-Guide on the [Wiki](https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr/wiki/How-to-login-via-cookie)
-
-## CLI parameters
-
-| Parameter            | Short               | Default          | Supported values                        | Description                          |
-| :-----------------   | :------------------ | :--------------- | :-------------------------------------- | :----------------------------------- |
-| ```--quality```      | ```-q```            | ```MP3_320```    | MP3_128/MP3_320/FLAC                    | The quality of the files to download |
-| ```--path```         | ```-p```            | ```DOWNLOADS/``` | Path with / in the end                  | Relative path for Downloads folder   |
-| ```--url```          | ```-u or nothing``` |                  | album/artist/playlist/profile/track url | Downloads single deezer url          |
-| ```--downloadmode``` | ```-d```            | ```single```     | ```all``` for "downloadLinks.txt"       | Downloads multiple urls from list    |
-| ```--help```         | ```-h```            |                  | _Nothing_                               | Shows the CLI help                   |
-
-
-
-## Downloads
-
-- Get stable release here: [https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr/releases](https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr/releases)
+Simply clone the repo, `npm install`, and run SMLoadr.js with `node SMLoadr.js` or `npm run start`.
+Your server will be up at `localhost:8080`
 
 ## Disclaimer
-
+- "We" in this context refers to myself as well as the SMLoadrDevs
 - We do **not** call to commit crimes.
 - The usage of this tool **may be illegal** in your country! Please inform yourself.
-- We do **not** give any guarantee at all and we are **not** responsible for damages of all kinds!
+- We do **not** give any guarantee at all and we are **not** responsible for damages of any and all kinds!
+- This program is based off SMLoadr, get stable release here: [https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr/releases](https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr/releases)
 
 ####This work is licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License](http://creativecommons.org/licenses/by-nc/4.0/).
 ---
-> Made with :heart: & :beer: by SMLoadrDevs | Copyright © 2020 SMLoadrDevs.
+> SMLoadr is Copyright © 2020 SMLoadrDevs.
