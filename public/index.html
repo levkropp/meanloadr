@@ -30,7 +30,7 @@
 <!-- SET THE CONTROLLER AND GET ALL TODOS -->
 
 <body ng-app="scotchTodo" class='flex flex-col min-h-screen'> 
-  <div class="flex-1 bg-gray-100">
+  <div class="flex-1 bg-gray-300">
 
     <!-- HEADER AND TODO COUNT -->
     <div class="text-center">
@@ -74,40 +74,35 @@
         <form>
           <div class="form-group">
             <!-- BIND THIS VALUE TO formData.text IN ANGULAR -->
-            <input type="text" class="bg-white focus:outline-none focus:shadow-outline border border-gray-300 m-auto rounded-lg my-2 py-2 px-4 block w-3/4 md:w-1/4 appearance-none leading-normal"
+            <input id="searchForm" type="text" ng-change="formData.searchTerm ? createSearch(formData.searchTerm) : return" class="bg-white focus:outline-none focus:shadow-outline border border-gray-300 m-auto rounded-lg my-2 py-2 px-4 block w-3/4 md:w-1/4 appearance-none leading-normal"
               placeholder="Enter search term" ng-model="formData.searchTerm">
           </div>
 
           <!-- createStream() will send the arl cookie and deezer url to smloadr -->
           <button type="submit" class="bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded" ng-click="createSearch(formData.searchTerm)">Search</button>
-          <!-- Preloader for streaming in my browser  -->
-
-          <br>
-          <!-- <p ng-if="deezerUrlEntered">Playing song!</p> -->
-
 
         </form>
 
-        <div ng-if="deezerUrlSubmitted">
-            <p><i class="fa fa-circle-o-notch fa-spin fa-fw"></i> Downloading song...</p>
-          </div>
 
-        <div class="flex flex-col m-auto text-left bg-gray-600">
-          
-          <div class="flex justify-around flex-row align-middle px-2 hover:bg-gray-200 m-auto min-w-m max-w-xl" id="searchResults" ng-repeat="search in searchData">
+      <div ng-if="formData.searchTerm" class="p-4 text-center">
+          <table class="m-auto">
+              <tr>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Artist</th>
+              </tr>
+              <tr class="hover:bg-gray-200" ng-click="formData.deezer_url=search.link;createStream();" ng-repeat="search in searchData">
+                <td class="md:p-4"><img class="" src={{search.album.cover_small}} alt=""></td>
+                <td class="md:p-4">{{search.title}}</td>
+                <td class="md:p-4">{{search.artist.name}}</td>
+              </tr>
+            </table> 
+      </div>
 
-            <div ng-click="formData.deezer_url=search.link;createStream();">
-                <img class="px-4" src={{search.album.cover_small}} alt="">
-                <p class=""> {{search.title}} </p>
-                <p class=""> {{search.artist.name}} </p>
-            </div>
-
-              
-          </div>
-
+      
+      <div ng-if="deezerUrlSubmitted">
+          <p><i class="fa fa-circle-o-notch fa-spin fa-fw"></i> Downloading song...</p>
         </div>
-
-
 
       </div>
     </div>
