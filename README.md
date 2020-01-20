@@ -2,14 +2,9 @@
 > A streaming application powered by SMLoadr and Howler
 
 ## Features
-
-- Download music in excellent quality for free
-- Supports single tracks, albums, artists, playlists and users favourite tracks
-- Music quality selection (MP3 - 128 kbps, MP3 - 320 kbps, FLAC - 1411 kbps)
-- Auto tagging MP3 & FLAC files (with album cover)
-- Saves music to "DOWNLOADS/[artist]/[album]/[track_number] [title].mp3/flac"
-- Download a list of links from "downloadLinks.txt"
-- CLI support
+- Search and play your favorite Deezer tracks right in the browser!
+- Volume and seeking built in!
+- Put it on a server to use it away from home!
 
 ## How to use
 
