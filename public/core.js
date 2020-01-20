@@ -1,5 +1,5 @@
 // public/core.js
-var scotchTodo = angular.module('scotchTodo', []);
+var meanLoadr = angular.module('meanLoadr', []);
 
 
 function formatTime(secs) {
@@ -9,10 +9,7 @@ function formatTime(secs) {
     return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
   }
 
-scotchTodo.controller('mainController',($scope, $http) => {
-
-
-    console.log()
+meanLoadr.controller('mainController',($scope, $http) => {
 
     $scope.sound = null;
     $scope.vol = 100
@@ -28,6 +25,8 @@ scotchTodo.controller('mainController',($scope, $http) => {
     $scope.deezerUrlEntered = false;
 
     $scope.deezerUrlSubmitted = false;
+
+    $scope.searchData = {}
 
 
 
@@ -53,9 +52,10 @@ scotchTodo.controller('mainController',($scope, $http) => {
         $http.post('/api/arl/', $scope.formData)
             .then((response) => {
                 $scope.formData = {}; // clear the form so our user is ready to enter another
-                //$scope.todos = data;
                 $scope.arlEntered = true;
                 console.log(response.data);
+
+
             })
             .catch((err) => {
                 console.log(err)
@@ -75,11 +75,11 @@ scotchTodo.controller('mainController',($scope, $http) => {
                 $scope.currentSong.apiData = response.data.apiData
 
                 console.log($scope.currentSong)
-                $scope.formData = {}; // clear the form so our user is ready to enter another
-                //$scope.todos = data;
+
                 console.log(response.data);
                 $scope.deezerUrlEntered = true;
                 $scope.currentSong.paused = false;
+                Howler.unload();
                 $scope.sound = new Howl({
                     format: ['mp3'],
                     html5: true,
@@ -119,6 +119,20 @@ scotchTodo.controller('mainController',($scope, $http) => {
                 $scope.sound.play();
                 $scope.deezerUrlSubmitted = false;
             })
-    };         
+    };
+    
+    
+    $scope.createSearch = (searchTerm) => {
+
+        $http.get('/api/search/'+searchTerm, {})
+            .then((response) => {
+                    console.log(response.data)
+                    $scope.searchData = response.data.data.slice(0,5)
+                    console.log( $scope.searchData)
+
+            })
+        
+    }
+
 
 });
