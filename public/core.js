@@ -68,65 +68,69 @@ meanLoadr.controller('mainController',($scope, $http) => {
         if ($scope.sound)
             $scope.sound.stop();
 
-        $scope.deezerUrlSubmitted = true;
-        $http.post('/api/stream/', $scope.formData)
-            .then((response) => {
-
-
-                if (response != "busy") {
-
-                    $scope.currentSong.apiData = response.data.apiData
-
-                    //console.log($scope.currentSong)
-    
-                    //console.log(response.data);
-                    $scope.deezerUrlEntered = true;
-                    $scope.currentSong.paused = false;
-                    Howler.unload();
-                    $scope.sound = new Howl({
-                        format: ['mp3'],
-                        html5: true,
-                        src: ['/api/play/'+response.data.filename],
-                        onplay: function() {
-                            // Display the duration.
-                            $scope.currentSong.duration = formatTime(Math.round($scope.sound.duration()))
+        if (!$scope.deezerUrlSubmitted) {
+            $scope.deezerUrlSubmitted = true;
+            $http.post('/api/stream/', $scope.formData)
+                .then((response) => {
     
     
-                            $scope.currentSong.paused = false
+                    if (response != "busy") {
     
-                            if (!document.getElementById("seek"))
-                                document.getElementById("seekWrapper").innerHTML += '<input type="range" id="seek" value="0" min="0" max='+Math.floor($scope.sound.duration())+' />'
-                            
+                        $scope.currentSong.apiData = response.data.apiData
     
-                            document.getElementById("seek").addEventListener('change', () => {
-                                $scope.sound.seek(document.getElementById("seek").value)
-                            })
-    
-                            setInterval(() => {
+                        //console.log($scope.currentSong)
+        
+                        //console.log(response.data);
+                        $scope.deezerUrlEntered = true;
+                        $scope.currentSong.paused = false;
+                        Howler.unload();
+                        $scope.sound = new Howl({
+                            format: ['mp3'],
+                            html5: true,
+                            src: ['/api/play/'+response.data.filename],
+                            onplay: function() {
+                                // Display the duration.
+                                $scope.currentSong.duration = formatTime(Math.round($scope.sound.duration()))
+        
+        
+                                $scope.currentSong.paused = false
+        
+                                if (!document.getElementById("seek"))
+                                    document.getElementById("seekWrapper").innerHTML += '<input type="range" id="seek" value="0" min="0" max='+Math.floor($scope.sound.duration())+' />'
                                 
-                                document.getElementById("seek").value = $scope.currentSong.seek = $scope.sound.seek()
+        
+                                document.getElementById("seek").addEventListener('change', () => {
+                                    $scope.sound.seek(document.getElementById("seek").value)
+                                })
+        
+                                setInterval(() => {
+                                    
+                                    document.getElementById("seek").value = $scope.currentSong.seek = $scope.sound.seek()
+        
+                                    document.getElementById("songTime").innerHTML = formatTime(Math.round($scope.sound.seek()))+" | "+formatTime(Math.round($scope.sound.duration()))
+                                },100)
+        
+                              },
+                            onload: function() {
+                                
+                            }
+        
+                          });
+                        
+                        
+                        $scope.deezerUrlSubmitted = false;
+                        
+                        $scope.sound.play();
     
-                                document.getElementById("songTime").innerHTML = formatTime(Math.round($scope.sound.seek()))+" | "+formatTime(Math.round($scope.sound.duration()))
-                            },100)
+        
+                    } else {
+                        alert("Someone else is downloading a track or updating the arl. Please wait a second and try again.")
+                    }
     
-                          },
-                        onload: function() {
-                            
-                        }
-    
-                      });
-                    
-                    
-                    $scope.deezerUrlSubmitted = false;
-                    
-                    $scope.sound.play();
+                })
+        }
 
-    
-                } else {
-                    alert("Someone else is downloading a track or updating the arl. Please wait a second and try again.")
-                }
 
-            })
     };
     
     
