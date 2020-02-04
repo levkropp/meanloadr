@@ -1425,6 +1425,6 @@ function downloadTrack(trackInfos, trackQualityId, saveFilePath, numberRetry = 0
     });
 
     // listen (start app with node server.js) ======================================
-    app.listen(8080);
+    app.listen(80);
     console.log("App listening on port 8080");
 
