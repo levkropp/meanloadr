@@ -28,6 +28,8 @@ let PLAYLIST_DIR = 'PLAYLISTS/';
 let PLAYLIST_FILE_ITEMS = {};
 
 
+let loadrBusy = false
+let arlUpdating = false
 
 const musicQualities = {
     MP3_128: {
@@ -462,6 +464,9 @@ let downloadStateInstance = new downloadState();
  * @param {String}  deezerUrl
  */
 function startDownload(deezerUrl, _callback) {
+
+    loadrBusy = true;    
+
 
     const deezerUrlParts = getDeezerUrlParts(deezerUrl);
 
@@ -1371,32 +1376,46 @@ function downloadTrack(trackInfos, trackQualityId, saveFilePath, numberRetry = 0
     //when we receive an arl cookie
     app.post('/api/arl', (req,res) => {
 
-        //httpHeaders.arl="arl="+req.body.arl
-
-        console.log("arl="+req.body.arl)
-        console.log(httpHeaders.cookie)
-
-        httpHeaders.cookie = "arl="+req.body.arl
-        initApp(() => {
-
-            res.send("Success!")
-        });
+        if (!loadrBusy && !arlUpdating) {
+            arlUpdating = true
+            //httpHeaders.arl="arl="+req.body.arl
+    
+            console.log("arl="+req.body.arl)
+            console.log(httpHeaders.cookie)
+    
+            httpHeaders.cookie = "arl="+req.body.arl
+            initApp(() => {
+                arlUpdating = false
+                res.send("Success!")
+            });
+        }
+        else {
+            res.send("Someone is using their arl at the moment. Try again in a second.")
+        } 
 
     })
 
     app.post('/api/stream', (req,res) => {
 
-        var jsonData = {}
+        if (!loadrBusy && !arlUpdating) {
 
-        //Get the song info from the deezer api
-        axios.get(req.body.deezer_url.replace("www","api").replace("/us/","/")).then((apiResponse) => {
-            jsonData = apiResponse.data;
-        })
+            var jsonData = {}
 
+            //Get the song info from the deezer api
+            axios.get(req.body.deezer_url.replace("www","api").replace("/us/","/")).then((apiResponse) => {
+                jsonData = apiResponse.data;
+            })
+    
+    
+            startDownload(req.body.deezer_url, (filename) => {
+                loadrBusy = false;
+                res.json({filename: filename, apiData: jsonData})
+            })
+    
+        } else {
+            res.send("busy")
+        }
 
-        startDownload(req.body.deezer_url, (filename) => {
-            res.json({filename: filename, apiData: jsonData})
-        })
 
 
     })
