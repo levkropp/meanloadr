@@ -1429,7 +1429,7 @@ function downloadTrack(trackInfos, trackQualityId, saveFilePath, numberRetry = 0
     app.get('/api/search/:term', (req,res) => {
         
 
-        axios.get("https://api.deezer.com/search?q=track:\""+req.params.term+"\"").then((response) => {
+        axios.get("https://api.deezer.com/search?q=\""+req.params.term+"\"").then((response) => {
             //console.log(response.data)
             res.json(response.data)
         })
