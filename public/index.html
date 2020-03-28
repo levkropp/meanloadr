@@ -30,7 +30,7 @@
 <!-- SET THE CONTROLLER AND GET ALL TODOS -->
 
 <body ng-app="scotchTodo" class='flex flex-col min-h-screen'> 
-  <div class="flex-1 bg-gray-300">
+  <div class="flex-1 bg-gray-800 text-white">
 
     <!-- HEADER AND TODO COUNT -->
     <div class="text-center">
@@ -84,25 +84,33 @@
         </form>
 
 
-      <div ng-if="formData.searchTerm" class="p-4 text-center">
-          <table class="m-auto">
-              <tr>
-                <th>Image</th>
-                <th>Name</th>
-                <th>Artist</th>
-              </tr>
-              <tr class="hover:bg-gray-200" ng-click="formData.deezer_url=search.link;createStream();" ng-repeat="search in searchData">
-                <td class="md:p-4"><img class="" src={{search.album.cover_small}} alt=""></td>
-                <td class="md:p-4">{{search.title}}</td>
-                <td class="md:p-4">{{search.artist.name}}</td>
-              </tr>
-            </table> 
+      <div ng-if="formData.searchTerm" class="p-4 flex flex-wrap justify-center">
+        <div class="p-4 bg-blue-800 m-2 rounded-lg text-left" ng-repeat="search in searchData">
+          
+          <div class="flex flex-row " ng-if="search.type == 'track'"> 
+            <div style="max-width:150px;" class="flex flex-col text-center hover:underline cursor-pointer">
+                <img src="{{search.album.cover_medium}}" alt="">
+                <p class="overflow-hidden" ng-click="">{{search.album.title}}</p>
+            </div>
+
+
+              <div class="flex flex-col px-2 content-between">
+                  <p class="text-2xl">{{search.title}} <i ng-click="formData.deezer_url = search.link;createStream()" class="fa fa-play-circle hover: cursor-pointer" aria-hidden="true"></i>
+                  </p>
+                  <p class="italic hover:underline cursor-pointer" >{{search.artist.name}}</p>
+                  <p class="pb-4">{{formatTime(search.duration)}}</p>
+                  
+
+                  
+              </div>
+
+          </div>
+
+        </div>
       </div>
 
       
-      <div ng-if="deezerUrlSubmitted">
-          <p><i class="fa fa-circle-o-notch fa-spin fa-fw"></i> Downloading song...</p>
-        </div>
+
 
       </div>
     </div>
@@ -111,12 +119,15 @@
 
   <footer class="bg-gray-900 text-white">
 
+      <div class="text-center" ng-if="deezerUrlSubmitted">
+          <p><i class="fa fa-circle-o-notch fa-spin fa-fw"></i> Downloading song...</p>
+        </div>
 
-    <div id="playSong" ng-if="arlEntered" class="flex text-center flex-col-reverse md:flex-row justify-around w-full md:w-1/2 m-auto my-2 border-gray-300">
+    <div id="playSong" ng-if="arlEntered" class="flex text-center flex-col-reverse md:flex-row justify-center  md:p-4 border-gray-300">
       <!-- Volume slider  -->
 
 
-        
+        <img ng-if="currentSong" class="flex-none m-4" src="{{currentSong.apiData.album.cover_small}}" alt="">
         <div id="seekWrapper" class="flex-initial">
           <p class="" id="songTime"></p>
         </div>
@@ -150,4 +161,16 @@
 
 </body>
 
+<style>
+
+footer {
+  position:fixed;
+ bottom:0;
+ left:0;
+ width: 100%;
+}
+
+</style>
+
 </html>
+

@@ -28,6 +28,7 @@ meanLoadr.controller('mainController',($scope, $http) => {
 
     $scope.searchData = {}
 
+    $scope.formatTime = formatTime;
 
 
     $scope.updateVolume = () => {
@@ -139,7 +140,7 @@ meanLoadr.controller('mainController',($scope, $http) => {
         $http.get('/api/search/'+searchTerm, {})
             .then((response) => {
                     //console.log(response.data)
-                    $scope.searchData = response.data.data.slice(0,5)
+                    $scope.searchData = response.data.data
                    // console.log( $scope.searchData)
 
             })
