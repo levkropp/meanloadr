@@ -18,7 +18,7 @@
         "node": ">=9.0.0"
     },
     "dependencies": {
-        "angular": "^1.7.9",
+        "angular": "^1.8.0",
         "axios": "^0.19.1",
         "bluebird": "^3.7.2",
         "body-parser": "^1.19.0",
