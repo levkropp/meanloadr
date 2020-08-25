@@ -43,6 +43,7 @@
         "winston": "^3.2.1"
     },
     "devDependencies": {
-        "pkg": "^4.4.2"
+        "pkg": "^4.4.2",
+        "minimist": ">=1.2.3"
     }
 }
