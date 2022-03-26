@@ -44,6 +44,6 @@
     },
     "devDependencies": {
         "pkg": "^4.4.2",
-        "minimist": ">=1.2.3"
+        "minimist": ">=1.2.6"
     }
 }
