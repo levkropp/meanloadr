@@ -28,7 +28,7 @@
         "command-line-usage": "^6.1.0",
         "cookie-parser": "^1.4.4",
         "crypto-random-string": "^3.1.0",
-        "express": "^4.17.3",
+        "express": "^4.21.0",
         "inquirer": "^7.0.1",
         "jsonfile": "^5.0.0",
         "method-override": "^3.0.0",
